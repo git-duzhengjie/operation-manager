@@ -170,7 +170,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => toast.info('个人设置功能开发中')}>
+                <DropdownMenuItem onClick={() => router.push('/settings/profile')}>
                   <Settings className="w-4 h-4 mr-2" />
                   个人设置
                 </DropdownMenuItem>
