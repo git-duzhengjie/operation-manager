@@ -5,24 +5,25 @@ import { Bell, Search, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
+  const router = useRouter();
 
   const handleClearSearch = () => {
     setSearchValue('');
   };
 
-  const handleSearch = (value: string) => {
-    if (value.trim()) {
-      toast.success(`搜索"${value}"的功能开发中...`);
+  const handleSearch = () => {
+    if (searchValue.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchValue.trim()) {
-      handleSearch(searchValue);
+      handleSearch();
     }
   };
 
