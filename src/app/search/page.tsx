@@ -20,11 +20,10 @@ const mockTickets = [
 
 // 模拟资产数据
 const mockAssets = [
-  { id: 'SRV001', name: '应用服务器-01', type: '服务器', status: 'running', ip: '192.168.1.101', customer: '市财政局' },
-  { id: 'SRV002', name: '数据库服务器-01', type: '服务器', status: 'running', ip: '192.168.1.102', customer: '市人社局' },
-  { id: 'SRV003', name: '应用服务器-02', type: '服务器', status: 'warning', ip: '192.168.1.103', customer: '市卫健委' },
-  { id: 'NET001', name: '核心交换机-01', type: '网络设备', status: 'running', ip: '192.168.1.1', customer: '市公安局' },
-  { id: 'STO001', name: '存储阵列-01', type: '存储设备', status: 'running', ip: '192.168.1.200', customer: '市财政局' },
+  { id: 'AST001', name: '应用服务器-01', type: '服务器', status: 'running', ip: '192.168.1.101', customer: '市财政局' },
+  { id: 'AST002', name: '核心交换机-01', type: '网络设备', status: 'running', ip: '192.168.1.1', customer: '市财政局' },
+  { id: 'AST003', name: '数据库服务器-01', type: '服务器', status: 'warning', ip: '192.168.1.102', customer: '市人社局' },
+  { id: 'AST004', name: '应用服务器-02', type: '服务器', status: 'running', ip: '192.168.1.103', customer: '市卫健委' },
 ];
 
 // 模拟知识库数据
