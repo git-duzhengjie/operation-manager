@@ -492,9 +492,9 @@ export default function QuickSubmitPage() {
             <DialogTitle className="text-center">工单提交成功</DialogTitle>
             <DialogDescription className="text-center">
               您的工单已成功提交，工单号为：
-              <div className="font-mono text-lg font-bold text-blue-600 mt-2">
+              <span className="block font-mono text-lg font-bold text-blue-600 mt-2">
                 {ticketNo}
-              </div>
+              </span>
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-center space-x-4 mt-4">
