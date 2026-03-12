@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Ticket, Package, BookOpen, Search } from 'lucide-react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 
 // 模拟工单数据
@@ -50,9 +50,8 @@ const assetStatusMap: Record<string, { label: string; color: string }> = {
   offline: { label: '离线', color: 'bg-gray-100 text-gray-700' },
 };
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const keyword = searchParams.get('q') || '';
   const [activeTab, setActiveTab] = useState('all');
 
@@ -90,247 +89,259 @@ export default function SearchPage() {
   }, [keyword]);
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* 页面标题 */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">搜索结果</h1>
-          <p className="text-gray-600 mt-1">
-            {keyword ? `找到 ${results.total} 条与"${keyword}"相关的结果` : '请输入搜索关键词'}
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* 页面标题 */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">搜索结果</h1>
+        <p className="text-gray-600 mt-1">
+          {keyword ? `找到 ${results.total} 条与"${keyword}"相关的结果` : '请输入搜索关键词'}
+        </p>
+      </div>
 
-        {/* 无结果提示 */}
-        {keyword && results.total === 0 && (
+      {/* 无结果提示 */}
+      {keyword && results.total === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Search className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 text-lg">未找到与"{keyword}"相关的结果</p>
+            <p className="text-gray-400 mt-2">请尝试使用其他关键词</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 搜索结果 */}
+      {keyword && results.total > 0 && (
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">全部 ({results.total})</TabsTrigger>
+            <TabsTrigger value="tickets">工单 ({results.tickets.length})</TabsTrigger>
+            <TabsTrigger value="assets">资产 ({results.assets.length})</TabsTrigger>
+            <TabsTrigger value="knowledge">知识库 ({results.knowledge.length})</TabsTrigger>
+          </TabsList>
+
+          {/* 全部结果 */}
+          <TabsContent value="all" className="space-y-4 mt-4">
+            {results.tickets.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center">
+                    <Ticket className="w-4 h-4 mr-2" />
+                    工单 ({results.tickets.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {results.tickets.slice(0, 3).map(ticket => (
+                    <Link 
+                      key={ticket.id} 
+                      href={`/tickets`}
+                      className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm text-blue-600">{ticket.id}</span>
+                          <span className="mx-2">-</span>
+                          <span className="font-medium">{ticket.title}</span>
+                        </div>
+                        <Badge variant={statusMap[ticket.status].variant}>
+                          {statusMap[ticket.status].label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{ticket.customer}</p>
+                    </Link>
+                  ))}
+                  {results.tickets.length > 3 && (
+                    <button 
+                      onClick={() => setActiveTab('tickets')}
+                      className="text-blue-600 text-sm hover:underline"
+                    >
+                      查看更多 {results.tickets.length - 3} 条工单
+                    </button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {results.assets.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center">
+                    <Package className="w-4 h-4 mr-2" />
+                    资产 ({results.assets.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {results.assets.map(asset => (
+                    <Link 
+                      key={asset.id} 
+                      href={`/assets`}
+                      className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm text-blue-600">{asset.id}</span>
+                          <span className="mx-2">-</span>
+                          <span className="font-medium">{asset.name}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs ${assetStatusMap[asset.status].color}`}>
+                          {assetStatusMap[asset.status].label}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{asset.type} · {asset.ip} · {asset.customer}</p>
+                    </Link>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {results.knowledge.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    知识库 ({results.knowledge.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {results.knowledge.slice(0, 3).map(item => (
+                    <Link 
+                      key={item.id} 
+                      href={`/portal/knowledge`}
+                      className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{item.title}</span>
+                        <span className="text-sm text-gray-500">{item.views} 次浏览</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{item.category}</span>
+                        {item.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+                    </Link>
+                  ))}
+                  {results.knowledge.length > 3 && (
+                    <button 
+                      onClick={() => setActiveTab('knowledge')}
+                      className="text-blue-600 text-sm hover:underline"
+                    >
+                      查看更多 {results.knowledge.length - 3} 条知识
+                    </button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* 工单结果 */}
+          <TabsContent value="tickets" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {results.tickets.map(ticket => (
+                    <Link 
+                      key={ticket.id} 
+                      href={`/tickets`}
+                      className="block p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm text-blue-600">{ticket.id}</span>
+                          <span className="mx-2">-</span>
+                          <span className="font-medium">{ticket.title}</span>
+                        </div>
+                        <Badge variant={statusMap[ticket.status].variant}>
+                          {statusMap[ticket.status].label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{ticket.customer} · {ticket.description}</p>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* 资产结果 */}
+          <TabsContent value="assets" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {results.assets.map(asset => (
+                    <Link 
+                      key={asset.id} 
+                      href={`/assets`}
+                      className="block p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono text-sm text-blue-600">{asset.id}</span>
+                          <span className="mx-2">-</span>
+                          <span className="font-medium">{asset.name}</span>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs ${assetStatusMap[asset.status].color}`}>
+                          {assetStatusMap[asset.status].label}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">{asset.type} · IP: {asset.ip} · {asset.customer}</p>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* 知识库结果 */}
+          <TabsContent value="knowledge" className="mt-4">
+            <Card>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {results.knowledge.map(item => (
+                    <Link 
+                      key={item.id} 
+                      href={`/portal/knowledge`}
+                      className="block p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{item.title}</span>
+                        <span className="text-sm text-gray-500">{item.views} 次浏览</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">{item.category}</span>
+                        {item.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <AppLayout>
+      <Suspense fallback={
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">搜索结果</h1>
+            <p className="text-gray-600 mt-1">加载中...</p>
+          </div>
           <Card>
             <CardContent className="p-12 text-center">
-              <Search className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg">未找到与"{keyword}"相关的结果</p>
-              <p className="text-gray-400 mt-2">请尝试使用其他关键词</p>
+              <div className="animate-pulse">正在搜索...</div>
             </CardContent>
           </Card>
-        )}
-
-        {/* 搜索结果 */}
-        {keyword && results.total > 0 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="all">全部 ({results.total})</TabsTrigger>
-              <TabsTrigger value="tickets">工单 ({results.tickets.length})</TabsTrigger>
-              <TabsTrigger value="assets">资产 ({results.assets.length})</TabsTrigger>
-              <TabsTrigger value="knowledge">知识库 ({results.knowledge.length})</TabsTrigger>
-            </TabsList>
-
-            {/* 全部结果 */}
-            <TabsContent value="all" className="space-y-4 mt-4">
-              {results.tickets.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <Ticket className="w-4 h-4 mr-2" />
-                      工单 ({results.tickets.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {results.tickets.slice(0, 3).map(ticket => (
-                      <Link 
-                        key={ticket.id} 
-                        href={`/tickets?id=${ticket.id}`}
-                        className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-mono text-sm text-blue-600">{ticket.id}</span>
-                            <span className="mx-2">-</span>
-                            <span className="font-medium">{ticket.title}</span>
-                          </div>
-                          <Badge variant={statusMap[ticket.status].variant}>
-                            {statusMap[ticket.status].label}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{ticket.customer}</p>
-                      </Link>
-                    ))}
-                    {results.tickets.length > 3 && (
-                      <button 
-                        onClick={() => setActiveTab('tickets')}
-                        className="text-blue-600 text-sm hover:underline"
-                      >
-                        查看更多 {results.tickets.length - 3} 条工单
-                      </button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {results.assets.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <Package className="w-4 h-4 mr-2" />
-                      资产 ({results.assets.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {results.assets.slice(0, 3).map(asset => (
-                      <Link 
-                        key={asset.id} 
-                        href={`/assets?id=${asset.id}`}
-                        className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-mono text-sm text-blue-600">{asset.id}</span>
-                            <span className="mx-2">-</span>
-                            <span className="font-medium">{asset.name}</span>
-                          </div>
-                          <span className={`px-2 py-1 rounded text-xs ${assetStatusMap[asset.status].color}`}>
-                            {assetStatusMap[asset.status].label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{asset.type} · {asset.ip} · {asset.customer}</p>
-                      </Link>
-                    ))}
-                    {results.assets.length > 3 && (
-                      <button 
-                        onClick={() => setActiveTab('assets')}
-                        className="text-blue-600 text-sm hover:underline"
-                      >
-                        查看更多 {results.assets.length - 3} 条资产
-                      </button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {results.knowledge.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center">
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      知识库 ({results.knowledge.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {results.knowledge.slice(0, 3).map(item => (
-                      <Link 
-                        key={item.id} 
-                        href={`/portal/knowledge?id=${item.id}`}
-                        className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{item.title}</span>
-                          <span className="text-sm text-gray-500">{item.views} 次浏览</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">{item.category}</span>
-                          {item.tags.map(tag => (
-                            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                          ))}
-                        </div>
-                      </Link>
-                    ))}
-                    {results.knowledge.length > 3 && (
-                      <button 
-                        onClick={() => setActiveTab('knowledge')}
-                        className="text-blue-600 text-sm hover:underline"
-                      >
-                        查看更多 {results.knowledge.length - 3} 条知识
-                      </button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* 工单结果 */}
-            <TabsContent value="tickets" className="mt-4">
-              <Card>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {results.tickets.map(ticket => (
-                      <Link 
-                        key={ticket.id} 
-                        href={`/tickets?id=${ticket.id}`}
-                        className="block p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-mono text-sm text-blue-600">{ticket.id}</span>
-                            <span className="mx-2">-</span>
-                            <span className="font-medium">{ticket.title}</span>
-                          </div>
-                          <Badge variant={statusMap[ticket.status].variant}>
-                            {statusMap[ticket.status].label}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{ticket.customer} · {ticket.description}</p>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* 资产结果 */}
-            <TabsContent value="assets" className="mt-4">
-              <Card>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {results.assets.map(asset => (
-                      <Link 
-                        key={asset.id} 
-                        href={`/assets?id=${asset.id}`}
-                        className="block p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-mono text-sm text-blue-600">{asset.id}</span>
-                            <span className="mx-2">-</span>
-                            <span className="font-medium">{asset.name}</span>
-                          </div>
-                          <span className={`px-2 py-1 rounded text-xs ${assetStatusMap[asset.status].color}`}>
-                            {assetStatusMap[asset.status].label}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{asset.type} · IP: {asset.ip} · {asset.customer}</p>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* 知识库结果 */}
-            <TabsContent value="knowledge" className="mt-4">
-              <Card>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {results.knowledge.map(item => (
-                      <Link 
-                        key={item.id} 
-                        href={`/portal/knowledge?id=${item.id}`}
-                        className="block p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{item.title}</span>
-                          <span className="text-sm text-gray-500">{item.views} 次浏览</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">{item.category}</span>
-                          {item.tags.map(tag => (
-                            <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
-                          ))}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+        </div>
+      }>
+        <SearchContent />
+      </Suspense>
     </AppLayout>
   );
 }
