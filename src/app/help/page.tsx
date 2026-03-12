@@ -35,7 +35,7 @@ import {
   Package,
   AlertTriangle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 // 常见问题分类
@@ -201,14 +201,23 @@ const guides = [
   },
 ];
 
-// 热门问题
-const hotQuestions = [
-  { title: '如何重置密码？', views: 1234, articleId: 'hot-1' },
-  { title: '工单如何转派？', views: 987, articleId: 'hot-2' },
-  { title: '如何导出报表？', views: 876, articleId: 'hot-3' },
-  { title: '资产如何批量导入？', views: 654, articleId: 'hot-4' },
-  { title: '如何设置通知偏好？', views: 543, articleId: 'hot-5' },
+// 热门问题基础数据
+const hotQuestionsBase = [
+  { title: '如何重置密码？', articleId: 'hot-1' },
+  { title: '工单如何转派？', articleId: 'hot-2' },
+  { title: '如何导出报表？', articleId: 'hot-3' },
+  { title: '资产如何批量导入？', articleId: 'hot-4' },
+  { title: '如何设置通知偏好？', articleId: 'hot-5' },
 ];
+
+// 初始化浏览次数（默认值）
+const getDefaultViews = (): Record<string, number> => ({
+  'hot-1': 1234,
+  'hot-2': 987,
+  'hot-3': 876,
+  'hot-4': 654,
+  'hot-5': 543,
+});
 
 export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -216,7 +225,31 @@ export default function HelpCenterPage() {
   const [activeTab, setActiveTab] = useState('faq');
   const [selectedArticle, setSelectedArticle] = useState<GuideArticle | null>(null);
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
+  const [articleViews, setArticleViews] = useState<Record<string, number>>(getDefaultViews);
   const { openChat } = useCustomerService();
+
+  // 客户端初始化浏览次数
+  useEffect(() => {
+    const stored = localStorage.getItem('articleViews');
+    if (stored) {
+      try {
+        setArticleViews(JSON.parse(stored));
+      } catch {
+        // 解析失败使用默认值
+      }
+    }
+  }, []);
+
+  // 保存浏览次数到localStorage
+  const saveViews = (views: Record<string, number>) => {
+    localStorage.setItem('articleViews', JSON.stringify(views));
+  };
+
+  // 获取热门问题列表（带浏览次数）
+  const hotQuestions = hotQuestionsBase.map(q => ({
+    ...q,
+    views: articleViews[q.articleId] || 0,
+  }));
 
   const handleSearch = () => {
     if (searchKeyword.trim()) {
@@ -239,6 +272,13 @@ export default function HelpCenterPage() {
     if (article) {
       setSelectedArticle(article);
       setArticleDialogOpen(true);
+      // 增加浏览次数
+      const newViews = {
+        ...articleViews,
+        [articleId]: (articleViews[articleId] || 0) + 1,
+      };
+      setArticleViews(newViews);
+      saveViews(newViews);
     }
   };
 
