@@ -223,3 +223,20 @@ export const articleViews = pgTable('article_views', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// 通知类型枚举
+export const notificationTypeEnum = pgEnum('notification_type', ['info', 'warning', 'success']);
+export const notificationCategoryEnum = pgEnum('notification_category', ['workorder', 'alert', 'system', 'knowledge', 'asset', 'routine']);
+
+// 通知表
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  title: varchar('title', { length: 200 }).notNull(),
+  message: text('message').notNull(),
+  type: notificationTypeEnum('type').default('info').notNull(),
+  category: notificationCategoryEnum('category').default('system').notNull(),
+  isRead: boolean('is_read').default(false).notNull(),
+  userId: integer('user_id').references(() => users.id), // null 表示系统通知（所有用户可见）
+  relatedId: varchar('related_id', { length: 50 }), // 关联的业务ID，如工单号、资产编号等
+  createdAt: timestamp('created_at').defaultNow(),
+});

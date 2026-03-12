@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 
 export interface Notification {
   id: string;
@@ -10,116 +10,116 @@ export interface Notification {
   time: string;
   read: boolean;
   category: 'workorder' | 'alert' | 'system' | 'knowledge' | 'asset' | 'routine';
+  relatedId?: string | null;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  deleteNotification: (id: string) => void;
-  clearReadNotifications: () => void;
+  loading: boolean;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  clearReadNotifications: () => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-// 初始通知数据
-const initialNotifications: Notification[] = [
-  {
-    id: '1',
-    title: '工单已分配',
-    message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。该工单为服务器磁盘空间不足告警，优先级为高。',
-    type: 'info',
-    time: '5分钟前',
-    read: false,
-    category: 'workorder',
-  },
-  {
-    id: '2',
-    title: '告警通知',
-    message: '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。',
-    type: 'warning',
-    time: '10分钟前',
-    read: false,
-    category: 'alert',
-  },
-  {
-    id: '3',
-    title: '工单已完成',
-    message: '工单 WO20240101003 已被标记为已完成，感谢您的处理。',
-    type: 'success',
-    time: '30分钟前',
-    read: true,
-    category: 'workorder',
-  },
-  {
-    id: '4',
-    title: '系统升级通知',
-    message: '系统将于今晚22:00进行升级维护，预计维护时长1小时，届时系统将暂停服务。',
-    type: 'info',
-    time: '1小时前',
-    read: true,
-    category: 'system',
-  },
-  {
-    id: '5',
-    title: '知识库更新',
-    message: '有3篇新文章被添加到知识库：《服务器安全加固指南》、《常见网络问题解决方案》、《系统监控配置手册》。',
-    type: 'success',
-    time: '2小时前',
-    read: true,
-    category: 'knowledge',
-  },
-  {
-    id: '6',
-    title: '资产到期提醒',
-    message: '资产 AST001（应用服务器-01）的维保合同将于7天后到期，请及时续保。',
-    type: 'warning',
-    time: '3小时前',
-    read: false,
-    category: 'asset',
-  },
-  {
-    id: '7',
-    title: '巡检任务完成',
-    message: '本周例行巡检任务已完成，共检查设备45台，发现异常3项，已生成巡检报告。',
-    type: 'success',
-    time: '昨天',
-    read: true,
-    category: 'routine',
-  },
-  {
-    id: '8',
-    title: '新工单待审批',
-    message: '您有2个变更申请等待审批，请及时处理。',
-    type: 'info',
-    time: '昨天',
-    read: true,
-    category: 'workorder',
-  },
-];
-
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+  // 获取通知列表
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notifications');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setNotifications(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  // 初始化时获取通知
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  // 标记单个通知为已读
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markRead', id }),
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(n => n.id === id ? { ...n, read: true } : n)
+        );
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   }, []);
 
-  const deleteNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  // 标记所有通知为已读
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'markAllRead' }),
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   }, []);
 
-  const clearReadNotifications = useCallback(() => {
-    setNotifications(prev => prev.filter(n => !n.read));
+  // 删除通知
+  const deleteNotification = useCallback(async (id: string) => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  }, []);
+
+  // 清除已读通知
+  const clearReadNotifications = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clearRead' }),
+      });
+      
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => !n.read));
+      }
+    } catch (error) {
+      console.error('Failed to clear read notifications:', error);
+    }
   }, []);
 
   return (
@@ -127,10 +127,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       value={{
         notifications,
         unreadCount,
+        loading,
         markAsRead,
         markAllAsRead,
         deleteNotification,
         clearReadNotifications,
+        refreshNotifications: fetchNotifications,
       }}
     >
       {children}
