@@ -12,7 +12,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { ArticleDialog } from '@/components/article-dialog';
 import { useCustomerService } from '@/components/customer-service';
+import { guideArticles, getArticleById, type GuideArticle } from '@/data/guide-articles';
 import {
   BookOpen,
   Search,
@@ -152,10 +154,10 @@ const guides = [
     icon: Lightbulb,
     time: '5分钟',
     articles: [
-      { title: '系统概览与导航', url: '#' },
-      { title: '如何提交工单', url: '#' },
-      { title: '如何查询资产信息', url: '#' },
-      { title: '如何使用知识库', url: '#' },
+      { title: '系统概览与导航', articleId: 'quick-start-1' },
+      { title: '如何提交工单', articleId: 'quick-start-2' },
+      { title: '如何查询资产信息', articleId: 'quick-start-3' },
+      { title: '如何使用知识库', articleId: 'quick-start-4' },
     ],
   },
   {
@@ -165,10 +167,10 @@ const guides = [
     icon: Ticket,
     time: '10分钟',
     articles: [
-      { title: '工单创建与提交', url: '#' },
-      { title: '工单处理流程', url: '#' },
-      { title: '工单流转与审批', url: '#' },
-      { title: '工单统计与分析', url: '#' },
+      { title: '工单创建与提交', articleId: 'ticket-guide-1' },
+      { title: '工单处理流程', articleId: 'ticket-guide-2' },
+      { title: '工单流转与审批', articleId: 'ticket-guide-3' },
+      { title: '工单统计与分析', articleId: 'ticket-guide-4' },
     ],
   },
   {
@@ -178,10 +180,10 @@ const guides = [
     icon: Package,
     time: '8分钟',
     articles: [
-      { title: '资产台账管理', url: '#' },
-      { title: '客户信息管理', url: '#' },
-      { title: '项目关联管理', url: '#' },
-      { title: '资产配置管理', url: '#' },
+      { title: '资产台账管理', articleId: 'asset-guide-1' },
+      { title: '客户信息管理', articleId: 'asset-guide-2' },
+      { title: '项目关联管理', articleId: 'asset-guide-3' },
+      { title: '资产配置管理', articleId: 'asset-guide-4' },
     ],
   },
   {
@@ -191,10 +193,10 @@ const guides = [
     icon: Settings,
     time: '15分钟',
     articles: [
-      { title: '用户管理', url: '#' },
-      { title: '角色权限配置', url: '#' },
-      { title: '服务目录配置', url: '#' },
-      { title: '流程模板配置', url: '#' },
+      { title: '用户管理', articleId: 'system-guide-1' },
+      { title: '角色权限配置', articleId: 'system-guide-2' },
+      { title: '服务目录配置', articleId: 'system-guide-3' },
+      { title: '流程模板配置', articleId: 'system-guide-4' },
     ],
   },
 ];
@@ -212,6 +214,8 @@ export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('faq');
+  const [selectedArticle, setSelectedArticle] = useState<GuideArticle | null>(null);
+  const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const { openChat } = useCustomerService();
 
   const handleSearch = () => {
@@ -228,6 +232,22 @@ export default function HelpCenterPage() {
   const handleCopyPhone = () => {
     navigator.clipboard.writeText('400-888-8888');
     toast.success('技术支持电话已复制：400-888-8888');
+  };
+
+  const handleOpenArticle = (articleId: string) => {
+    const article = getArticleById(articleId);
+    if (article) {
+      setSelectedArticle(article);
+      setArticleDialogOpen(true);
+    }
+  };
+
+  const handleOpenGuideCategory = (categoryId: string) => {
+    const categoryArticles = guideArticles.filter(a => a.category === categoryId);
+    if (categoryArticles.length > 0) {
+      setSelectedArticle(categoryArticles[0]);
+      setArticleDialogOpen(true);
+    }
   };
 
   return (
@@ -398,7 +418,7 @@ export default function HelpCenterPage() {
                         <div
                           key={index}
                           className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 cursor-pointer group"
-                          onClick={() => toast.info(`《${article.title}》文档正在编写中，敬请期待`)}
+                          onClick={() => handleOpenArticle(article.articleId)}
                         >
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-gray-400" />
@@ -408,7 +428,7 @@ export default function HelpCenterPage() {
                         </div>
                       ))}
                     </div>
-                    <Button variant="link" className="mt-4 p-0 text-blue-600" onClick={() => toast.info(`《${guide.title}》完整版文档正在编写中，敬请期待`)}>
+                    <Button variant="link" className="mt-4 p-0 text-blue-600" onClick={() => handleOpenGuideCategory(guide.id)}>
                       查看完整指南
                       <ExternalLink className="w-4 h-4 ml-1" />
                     </Button>
@@ -478,6 +498,13 @@ export default function HelpCenterPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* 文章详情弹窗 */}
+      <ArticleDialog
+        article={selectedArticle}
+        open={articleDialogOpen}
+        onOpenChange={setArticleDialogOpen}
+      />
     </AppLayout>
   );
 }
