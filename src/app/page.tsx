@@ -10,7 +10,8 @@ import {
   TrendingUp,
   Package,
   Users,
-  Activity
+  Activity,
+  BookOpen
 } from 'lucide-react';
 import {
   BarChart,
@@ -26,6 +27,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { useRouter } from 'next/navigation';
 
 // 模拟数据
 const stats = [
@@ -63,6 +65,8 @@ const recentTickets = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -201,7 +205,10 @@ export default function DashboardPage() {
 
         {/* 快速操作 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push('/portal/quick-submit')}
+          >
             <CardContent className="p-6 flex items-center space-x-4">
               <div className="p-3 rounded-full bg-blue-100">
                 <Ticket className="w-6 h-6 text-blue-600" />
@@ -213,7 +220,10 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push('/assets')}
+          >
             <CardContent className="p-6 flex items-center space-x-4">
               <div className="p-3 rounded-full bg-green-100">
                 <Package className="w-6 h-6 text-green-600" />
@@ -225,10 +235,13 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => router.push('/portal/knowledge')}
+          >
             <CardContent className="p-6 flex items-center space-x-4">
               <div className="p-3 rounded-full bg-purple-100">
-                <Activity className="w-6 h-6 text-purple-600" />
+                <BookOpen className="w-6 h-6 text-purple-600" />
               </div>
               <div>
                 <p className="font-medium">知识库</p>
