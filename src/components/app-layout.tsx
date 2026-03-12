@@ -1,11 +1,31 @@
 'use client';
 
 import { AppSidebar } from './app-sidebar';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const [searchValue, setSearchValue] = useState('');
+
+  const handleClearSearch = () => {
+    setSearchValue('');
+  };
+
+  const handleSearch = (value: string) => {
+    if (value.trim()) {
+      toast.success(`搜索"${value}"的功能开发中...`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      handleSearch(searchValue);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <AppSidebar />
@@ -16,8 +36,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="搜索工单、资产、知识库..."
-                className="pl-10 w-96"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-10 pr-10 w-96"
               />
+              {searchValue && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                </button>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-4">
