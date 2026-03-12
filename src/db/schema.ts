@@ -28,9 +28,26 @@ export const users = pgTable('users', {
   realName: varchar('real_name', { length: 50 }),
   role: userRoleEnum('role').default('external').notNull(),
   department: varchar('department', { length: 100 }),
+  position: varchar('position', { length: 100 }),
+  avatar: text('avatar'), // 头像 URL 或 base64
   twoFactorEnabled: boolean('two_factor_enabled').default(false),
   twoFactorSecret: varchar('two_factor_secret', { length: 255 }),
   isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// 用户设置表
+export const userSettings = pgTable('user_settings', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull().unique(),
+  // 通知设置
+  emailNotify: boolean('email_notify').default(true),
+  smsNotify: boolean('sms_notify').default(false),
+  systemNotify: boolean('system_notify').default(true),
+  workorderNotify: boolean('workorder_notify').default(true),
+  alertNotify: boolean('alert_notify').default(true),
+  knowledgeNotify: boolean('knowledge_notify').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -197,61 +214,3 @@ export const formTemplates = pgTable('form_templates', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
-
-// 例行任务
-export const scheduledTasks = pgTable('scheduled_tasks', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  catalogId: integer('catalog_id').references(() => serviceCatalog.id),
-  frequency: scheduleFreqEnum('frequency').notNull(),
-  cronExpression: varchar('cron_expression', { length: 100 }),
-  nextRunAt: timestamp('next_run_at'),
-  lastRunAt: timestamp('last_run_at'),
-  formData: json('form_data'), // 预设表单数据
-  isActive: boolean('is_active').default(true),
-  createdBy: integer('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// 监控告警记录
-export const monitorAlerts = pgTable('monitor_alerts', {
-  id: serial('id').primaryKey(),
-  alertId: varchar('alert_id', { length: 100 }).notNull().unique(),
-  source: varchar('source', { length: 50 }), // 来源系统
-  level: varchar('level', { length: 20 }), // critical, warning, info
-  title: varchar('title', { length: 200 }).notNull(),
-  content: text('content'),
-  assetId: integer('asset_id').references(() => assets.id),
-  ticketId: integer('ticket_id').references(() => tickets.id),
-  status: varchar('status', { length: 20 }).default('pending'), // pending, processing, resolved
-  receivedAt: timestamp('received_at').defaultNow(),
-  resolvedAt: timestamp('resolved_at'),
-});
-
-// 操作日志
-export const auditLogs = pgTable('audit_logs', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id),
-  action: varchar('action', { length: 100 }).notNull(),
-  resource: varchar('resource', { length: 100 }),
-  resourceId: integer('resource_id'),
-  details: json('details'),
-  ip: varchar('ip', { length: 50 }),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// 类型导出
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-export type Customer = typeof customers.$inferSelect;
-export type Project = typeof projects.$inferSelect;
-export type Asset = typeof assets.$inferSelect;
-export type Ticket = typeof tickets.$inferSelect;
-export type TicketHistory = typeof ticketHistory.$inferSelect;
-export type KnowledgeArticle = typeof knowledgeArticles.$inferSelect;
-export type ServiceCatalog = typeof serviceCatalog.$inferSelect;
-export type Workflow = typeof workflows.$inferSelect;
-export type FormTemplate = typeof formTemplates.$inferSelect;
-export type ScheduledTask = typeof scheduledTasks.$inferSelect;
-export type MonitorAlert = typeof monitorAlerts.$inferSelect;

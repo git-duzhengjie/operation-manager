@@ -23,9 +23,11 @@ export interface NotificationSettings {
 interface UserContextType {
   userInfo: UserInfo;
   notificationSettings: NotificationSettings;
-  updateUserInfo: (info: Partial<UserInfo>) => void;
-  updateNotificationSettings: (settings: Partial<NotificationSettings>) => void;
-  updateAvatar: (avatar: string | null) => void;
+  updateUserInfo: (info: Partial<UserInfo>) => Promise<void>;
+  updateNotificationSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
+  updateAvatar: (avatar: string | null) => Promise<void>;
+  refreshUserSettings: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -57,10 +59,20 @@ const NOTIFICATION_SETTINGS_KEY = 'oms_notification_settings';
 export function UserProvider({ children }: { children: ReactNode }) {
   const [userInfo, setUserInfo] = useState<UserInfo>(defaultUserInfo);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(defaultNotificationSettings);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 初始化：从 localStorage 读取数据
-  useEffect(() => {
+  // 保存到 localStorage
+  const saveToLocalStorage = useCallback((info: UserInfo, settings: NotificationSettings) => {
+    try {
+      localStorage.setItem(USER_INFO_KEY, JSON.stringify(info));
+      localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
+  }, []);
+
+  // 从 localStorage 加载
+  const loadFromLocalStorage = useCallback(() => {
     try {
       const savedUserInfo = localStorage.getItem(USER_INFO_KEY);
       const savedNotificationSettings = localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
@@ -72,40 +84,99 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setNotificationSettings(JSON.parse(savedNotificationSettings));
       }
     } catch (error) {
-      console.error('Failed to load user settings from localStorage:', error);
+      console.error('Failed to load from localStorage:', error);
     }
-    setIsInitialized(true);
   }, []);
+
+  // 从 API 获取用户设置
+  const refreshUserSettings = useCallback(async () => {
+    try {
+      const response = await fetch('/api/user/settings');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setUserInfo(result.data.userInfo);
+        setNotificationSettings(result.data.notificationSettings);
+        
+        // 同步保存到 localStorage
+        saveToLocalStorage(result.data.userInfo, result.data.notificationSettings);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user settings:', error);
+      // API 失败时从 localStorage 加载
+      loadFromLocalStorage();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [saveToLocalStorage, loadFromLocalStorage]);
+
+  // 初始化：先从 localStorage 加载（快速显示），然后尝试从 API 获取
+  useEffect(() => {
+    loadFromLocalStorage();
+    refreshUserSettings();
+  }, [refreshUserSettings, loadFromLocalStorage]);
 
   // 更新用户信息
-  const updateUserInfo = useCallback((info: Partial<UserInfo>) => {
-    setUserInfo(prev => {
-      const newInfo = { ...prev, ...info };
-      try {
-        localStorage.setItem(USER_INFO_KEY, JSON.stringify(newInfo));
-      } catch (error) {
-        console.error('Failed to save user info to localStorage:', error);
+  const updateUserInfo = useCallback(async (info: Partial<UserInfo>) => {
+    const newInfo = { ...userInfo, ...info };
+    
+    // 先更新本地状态和 localStorage（乐观更新）
+    setUserInfo(newInfo);
+    saveToLocalStorage(newInfo, notificationSettings);
+    
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'userInfo',
+          data: newInfo,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error);
       }
-      return newInfo;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Failed to update user info:', error);
+      throw error;
+    }
+  }, [userInfo, notificationSettings, saveToLocalStorage]);
 
   // 更新通知设置
-  const updateNotificationSettings = useCallback((settings: Partial<NotificationSettings>) => {
-    setNotificationSettings(prev => {
-      const newSettings = { ...prev, ...settings };
-      try {
-        localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(newSettings));
-      } catch (error) {
-        console.error('Failed to save notification settings to localStorage:', error);
+  const updateNotificationSettings = useCallback(async (settings: Partial<NotificationSettings>) => {
+    const newSettings = { ...notificationSettings, ...settings };
+    
+    // 先更新本地状态和 localStorage（乐观更新）
+    setNotificationSettings(newSettings);
+    saveToLocalStorage(userInfo, newSettings);
+    
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'notificationSettings',
+          data: newSettings,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error);
       }
-      return newSettings;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Failed to update notification settings:', error);
+      throw error;
+    }
+  }, [userInfo, notificationSettings, saveToLocalStorage]);
 
   // 更新头像
-  const updateAvatar = useCallback((avatar: string | null) => {
-    updateUserInfo({ avatar });
+  const updateAvatar = useCallback(async (avatar: string | null) => {
+    await updateUserInfo({ avatar });
   }, [updateUserInfo]);
 
   return (
@@ -116,6 +187,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateUserInfo,
         updateNotificationSettings,
         updateAvatar,
+        refreshUserSettings,
+        isLoading,
       }}
     >
       {children}

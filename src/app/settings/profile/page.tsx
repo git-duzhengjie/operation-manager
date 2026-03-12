@@ -23,12 +23,19 @@ import {
   Upload,
   Loader2
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useUser } from '@/contexts/user-context';
 
 export default function SettingsPage() {
-  const { userInfo, notificationSettings, updateUserInfo, updateNotificationSettings, updateAvatar } = useUser();
+  const { 
+    userInfo, 
+    notificationSettings, 
+    updateUserInfo, 
+    updateNotificationSettings, 
+    updateAvatar,
+    isLoading 
+  } = useUser();
   
   // 编辑状态的用户信息
   const [editUserInfo, setEditUserInfo] = useState(userInfo);
@@ -36,6 +43,8 @@ export default function SettingsPage() {
   
   // 头像上传
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingNotifications, setSavingNotifications] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 密码修改
@@ -46,11 +55,11 @@ export default function SettingsPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // 同步编辑状态（当 userInfo 从 localStorage 加载后）
-  useState(() => {
+  // 同步编辑状态（当 userInfo 从 API 加载后）
+  useEffect(() => {
     setEditUserInfo(userInfo);
     setEditNotifications(notificationSettings);
-  });
+  }, [userInfo, notificationSettings]);
 
   // 点击更换头像
   const handleAvatarClick = () => {
@@ -85,8 +94,8 @@ export default function SettingsPage() {
         // 模拟上传延迟
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        // 保存到上下文和 localStorage
-        updateAvatar(dataUrl);
+        // 保存到数据库
+        await updateAvatar(dataUrl);
         setUploadingAvatar(false);
         toast.success('头像上传成功');
       };
@@ -101,9 +110,16 @@ export default function SettingsPage() {
   };
 
   // 保存个人信息
-  const handleSaveProfile = () => {
-    updateUserInfo(editUserInfo);
-    toast.success('个人信息已保存');
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await updateUserInfo(editUserInfo);
+      toast.success('个人信息已保存');
+    } catch (error) {
+      toast.error('保存失败');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   // 修改密码
@@ -131,10 +147,27 @@ export default function SettingsPage() {
   };
 
   // 保存通知偏好
-  const handleSaveNotifications = () => {
-    updateNotificationSettings(editNotifications);
-    toast.success('通知偏好已保存');
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true);
+    try {
+      await updateNotificationSettings(editNotifications);
+      toast.success('通知偏好已保存');
+    } catch (error) {
+      toast.error('保存失败');
+    } finally {
+      setSavingNotifications(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -258,9 +291,13 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveProfile}>
-                    <Save className="w-4 h-4 mr-2" />
-                    保存修改
+                  <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                    {savingProfile ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {savingProfile ? '保存中...' : '保存修改'}
                   </Button>
                 </div>
               </CardContent>
@@ -492,9 +529,13 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveNotifications}>
-                    <Save className="w-4 h-4 mr-2" />
-                    保存设置
+                  <Button onClick={handleSaveNotifications} disabled={savingNotifications}>
+                    {savingNotifications ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {savingNotifications ? '保存中...' : '保存设置'}
                   </Button>
                 </div>
               </CardContent>
