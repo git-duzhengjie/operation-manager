@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { useCustomerService } from '@/components/customer-service';
 import {
   BookOpen,
   Search,
@@ -33,7 +34,6 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 
 // 常见问题分类
@@ -211,6 +211,7 @@ const hotQuestions = [
 export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
+  const { openChat } = useCustomerService();
 
   const handleSearch = () => {
     if (searchKeyword.trim()) {
@@ -262,7 +263,7 @@ export default function HelpCenterPage() {
               <p className="text-sm text-gray-500 mt-1">操作演示视频</p>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={openChat}>
             <CardContent className="p-6 text-center">
               <MessageCircle className="w-8 h-8 text-green-600 mb-2" />
               <p className="font-medium">在线客服</p>
@@ -456,7 +457,7 @@ export default function HelpCenterPage() {
                 <p className="text-gray-600 mt-1">联系我们的技术支持团队获取帮助</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => toast.info('请点击页面右下角的客服图标开始咨询')}>
+                <Button variant="outline" onClick={openChat}>
                   <MessageCircle className="w-4 h-4 mr-2" />
                   在线咨询
                 </Button>

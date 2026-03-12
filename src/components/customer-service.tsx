@@ -1,10 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   MessageCircle,
   X,
@@ -13,12 +11,7 @@ import {
   User,
   Minimize2,
   Maximize2,
-  MoreVertical,
-  Phone,
-  Mail,
-  Clock,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -27,6 +20,13 @@ interface Message {
   sender: 'user' | 'bot';
   timestamp: Date;
 }
+
+interface CustomerServiceContextType {
+  openChat: () => void;
+  isOpen: boolean;
+}
+
+const CustomerServiceContext = createContext<CustomerServiceContextType | undefined>(undefined);
 
 // 模拟自动回复
 const autoReplies: Record<string, string> = {
@@ -55,14 +55,12 @@ function getAutoReply(message: string): string {
     }
   }
   
-  // 默认回复
   return `您好！感谢您的咨询。\n\n我理解您的问题是："${message}"\n\n目前我能解答以下类型的问题：\n• 密码和账号问题\n• 工单管理问题\n• 资产管理问题\n• 知识库使用\n• 通知设置\n\n您也可以：\n1. 拨打技术支持电话：400-888-8888\n2. 发送邮件至：support@gov.com\n3. 查看帮助中心获取详细文档\n\n请问还有什么可以帮您的吗？`;
 }
 
-export function CustomerService() {
+export function CustomerServiceProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true); // 是否有未读消息
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -75,20 +73,15 @@ export function CustomerService() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 滚动到底部
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // 打开聊天窗口时清除未读状态
-  const handleOpenChat = () => {
+  const openChat = () => {
     setIsOpen(true);
-    setHasUnread(false);
+    setIsMinimized(false);
   };
+
+  // 滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // 发送消息
   const handleSend = async () => {
@@ -132,23 +125,9 @@ export function CustomerService() {
   };
 
   return (
-    <>
-      {/* 悬浮按钮 */}
-      {!isOpen && (
-        <Button
-          onClick={handleOpenChat}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50"
-          size="icon"
-        >
-          <MessageCircle className="w-6 h-6" />
-          {hasUnread && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-              1
-            </span>
-          )}
-        </Button>
-      )}
-
+    <CustomerServiceContext.Provider value={{ openChat, isOpen }}>
+      {children}
+      
       {/* 聊天窗口 */}
       {isOpen && (
         <div
@@ -164,9 +143,9 @@ export function CustomerService() {
             <div className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
               <span className="font-medium">智能客服</span>
-              <Badge variant="secondary" className="bg-green-400 text-green-900 text-xs">
+              <span className="text-xs bg-green-400 text-green-900 px-2 py-0.5 rounded-full">
                 在线
-              </Badge>
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -286,6 +265,14 @@ export function CustomerService() {
           )}
         </div>
       )}
-    </>
+    </CustomerServiceContext.Provider>
   );
+}
+
+export function useCustomerService() {
+  const context = useContext(CustomerServiceContext);
+  if (context === undefined) {
+    throw new Error('useCustomerService must be used within a CustomerServiceProvider');
+  }
+  return context;
 }
