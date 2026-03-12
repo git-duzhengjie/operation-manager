@@ -56,7 +56,7 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 
 // 模拟工单数据
@@ -169,6 +169,17 @@ export default function TicketsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [ticketToDelete, setTicketToDelete] = useState<string>('');
   
+  // 高级筛选对话框
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    customer: 'all',
+    project: 'all',
+    assignee: 'all',
+    priority: 'all',
+    dateFrom: '',
+    dateTo: '',
+  });
+  
   // 新建表单字段
   const [formData, setFormData] = useState({
     type: '',
@@ -179,6 +190,130 @@ export default function TicketsPage() {
     description: '',
     assignee: '',
   });
+
+  // 过滤后的工单列表
+  const filteredTickets = useMemo(() => {
+    return mockTickets.filter(ticket => {
+      // 搜索关键词过滤
+      if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
+        const matchId = ticket.id.toLowerCase().includes(keyword);
+        const matchTitle = ticket.title.toLowerCase().includes(keyword);
+        const matchCustomer = ticket.customer.toLowerCase().includes(keyword);
+        if (!matchId && !matchTitle && !matchCustomer) {
+          return false;
+        }
+      }
+      
+      // 状态过滤
+      if (statusFilter !== 'all' && ticket.status !== statusFilter) {
+        return false;
+      }
+      
+      // 类型过滤
+      if (typeFilter !== 'all' && ticket.type !== typeFilter) {
+        return false;
+      }
+      
+      // 高级筛选
+      if (advancedFilters.customer !== 'all' && ticket.customer !== advancedFilters.customer) {
+        return false;
+      }
+      if (advancedFilters.project !== 'all' && ticket.project !== advancedFilters.project) {
+        return false;
+      }
+      if (advancedFilters.assignee !== 'all' && ticket.assignee !== advancedFilters.assignee) {
+        return false;
+      }
+      if (advancedFilters.priority !== 'all' && ticket.priority !== advancedFilters.priority) {
+        return false;
+      }
+      if (advancedFilters.dateFrom) {
+        const ticketDate = new Date(ticket.createdAt);
+        const fromDate = new Date(advancedFilters.dateFrom);
+        if (ticketDate < fromDate) {
+          return false;
+        }
+      }
+      if (advancedFilters.dateTo) {
+        const ticketDate = new Date(ticket.createdAt);
+        const toDate = new Date(advancedFilters.dateTo);
+        toDate.setHours(23, 59, 59);
+        if (ticketDate > toDate) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [searchKeyword, statusFilter, typeFilter, advancedFilters]);
+
+  // 搜索处理
+  const handleSearch = () => {
+    if (searchKeyword.trim()) {
+      toast.success(`搜索"${searchKeyword}"，找到 ${filteredTickets.length} 条结果`);
+    }
+  };
+
+  // 高级筛选处理
+  const handleAdvancedFilter = () => {
+    setShowAdvancedFilter(true);
+  };
+
+  // 应用高级筛选
+  const applyAdvancedFilter = () => {
+    setShowAdvancedFilter(false);
+    toast.success(`筛选已应用，共 ${filteredTickets.length} 条结果`);
+  };
+
+  // 重置筛选
+  const resetFilters = () => {
+    setAdvancedFilters({
+      customer: 'all',
+      project: 'all',
+      assignee: 'all',
+      priority: 'all',
+      dateFrom: '',
+      dateTo: '',
+    });
+    setSearchKeyword('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    toast.success('筛选已重置');
+  };
+
+  // 导出工单
+  const handleExport = () => {
+    // 构建 CSV 数据
+    const headers = ['工单号', '标题', '类型', '状态', '优先级', '客户', '项目', '处理人', '创建时间'];
+    const rows = filteredTickets.map(ticket => [
+      ticket.id,
+      ticket.title,
+      typeMap[ticket.type],
+      statusMap[ticket.status].label,
+      priorityMap[ticket.priority].label,
+      ticket.customer,
+      ticket.project,
+      ticket.assignee,
+      ticket.createdAt,
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    // 创建下载链接
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `工单列表_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast.success(`已导出 ${filteredTickets.length} 条工单数据`);
+  };
 
   // 查看工单详情
   const handleView = (ticket: typeof mockTickets[0]) => {
@@ -321,6 +456,7 @@ export default function TicketsPage() {
                   placeholder="搜索工单号、标题、客户..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="pl-10"
                 />
               </div>
@@ -349,11 +485,11 @@ export default function TicketsPage() {
                   <SelectItem value="problem">问题管理</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleAdvancedFilter}>
                 <Filter className="w-4 h-4 mr-2" />
                 高级筛选
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleExport}>
                 <Download className="w-4 h-4 mr-2" />
                 导出
               </Button>
@@ -378,65 +514,73 @@ export default function TicketsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTickets.map((ticket) => (
-                <TableRow key={ticket.id}>
-                  <TableCell className="font-mono text-blue-600">
-                    {ticket.id}
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {ticket.title}
-                  </TableCell>
-                  <TableCell>{typeMap[ticket.type]}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusMap[ticket.status].variant}>
-                      {statusMap[ticket.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className={priorityMap[ticket.priority].color + ' font-medium'}>
-                      {priorityMap[ticket.priority].label}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{ticket.customer}</div>
-                      <div className="text-gray-500">{ticket.project}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{ticket.assignee}</TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {ticket.createdAt}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        title="查看"
-                        onClick={() => handleView(ticket)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        title="编辑"
-                        onClick={() => handleEdit(ticket)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        title="删除"
-                        onClick={() => handleDelete(ticket.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+              {filteredTickets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    暂无匹配的工单数据
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredTickets.map((ticket) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-mono text-blue-600">
+                      {ticket.id}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      {ticket.title}
+                    </TableCell>
+                    <TableCell>{typeMap[ticket.type]}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusMap[ticket.status].variant}>
+                        {statusMap[ticket.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className={priorityMap[ticket.priority].color + ' font-medium'}>
+                        {priorityMap[ticket.priority].label}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{ticket.customer}</div>
+                        <div className="text-gray-500">{ticket.project}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{ticket.assignee}</TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {ticket.createdAt}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="查看"
+                          onClick={() => handleView(ticket)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="编辑"
+                          onClick={() => handleEdit(ticket)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="删除"
+                          onClick={() => handleDelete(ticket.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </Card>
@@ -820,6 +964,134 @@ export default function TicketsPage() {
             <Button onClick={() => setShowSuccess(false)}>
               查看工单
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 高级筛选对话框 */}
+      <Dialog open={showAdvancedFilter} onOpenChange={setShowAdvancedFilter}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>高级筛选</DialogTitle>
+            <DialogDescription>
+              设置更多筛选条件
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>客户</Label>
+                <Select 
+                  value={advancedFilters.customer} 
+                  onValueChange={(value) => setAdvancedFilters({...advancedFilters, customer: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="全部客户" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部客户</SelectItem>
+                    <SelectItem value="市财政局">市财政局</SelectItem>
+                    <SelectItem value="市人社局">市人社局</SelectItem>
+                    <SelectItem value="市卫健委">市卫健委</SelectItem>
+                    <SelectItem value="市公安局">市公安局</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>项目</Label>
+                <Select 
+                  value={advancedFilters.project} 
+                  onValueChange={(value) => setAdvancedFilters({...advancedFilters, project: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="全部项目" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部项目</SelectItem>
+                    <SelectItem value="预算管理系统">预算管理系统</SelectItem>
+                    <SelectItem value="人事管理系统">人事管理系统</SelectItem>
+                    <SelectItem value="医院信息系统">医院信息系统</SelectItem>
+                    <SelectItem value="警务综合平台">警务综合平台</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>处理人</Label>
+                <Select 
+                  value={advancedFilters.assignee} 
+                  onValueChange={(value) => setAdvancedFilters({...advancedFilters, assignee: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="全部处理人" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部处理人</SelectItem>
+                    <SelectItem value="张三">张三</SelectItem>
+                    <SelectItem value="李四">李四</SelectItem>
+                    <SelectItem value="王五">王五</SelectItem>
+                    <SelectItem value="赵六">赵六</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>优先级</Label>
+                <Select 
+                  value={advancedFilters.priority} 
+                  onValueChange={(value) => setAdvancedFilters({...advancedFilters, priority: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="全部优先级" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部优先级</SelectItem>
+                    <SelectItem value="urgent">紧急</SelectItem>
+                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="low">低</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>开始日期</Label>
+                <Input 
+                  type="date" 
+                  value={advancedFilters.dateFrom}
+                  onChange={(e) => setAdvancedFilters({...advancedFilters, dateFrom: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>结束日期</Label>
+                <Input 
+                  type="date" 
+                  value={advancedFilters.dateTo}
+                  onChange={(e) => setAdvancedFilters({...advancedFilters, dateTo: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between space-x-4 pt-4 border-t">
+              <Button variant="outline" onClick={resetFilters}>
+                重置
+              </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setShowAdvancedFilter(false)}>
+                  取消
+                </Button>
+                <Button onClick={applyAdvancedFilter}>
+                  应用筛选
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
