@@ -13,6 +13,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supportConfig } from '@/config/support';
 
 interface Message {
   id: string;
@@ -55,7 +56,7 @@ function getAutoReply(message: string): string {
     }
   }
   
-  return `您好！感谢您的咨询。\n\n我理解您的问题是："${message}"\n\n目前我能解答以下类型的问题：\n• 密码和账号问题\n• 工单管理问题\n• 资产管理问题\n• 知识库使用\n• 通知设置\n\n您也可以：\n1. 拨打技术支持电话：400-888-8888\n2. 发送邮件至：support@gov.com\n3. 查看帮助中心获取详细文档\n\n请问还有什么可以帮您的吗？`;
+  return `您好！感谢您的咨询。\n\n我理解您的问题是："${message}"\n\n目前我能解答以下类型的问题：\n• 密码和账号问题\n• 工单管理问题\n• 资产管理问题\n• 知识库使用\n• 通知设置\n\n您也可以：\n1. 拨打技术支持电话：${supportConfig.phone}\n2. 发送邮件至：${supportConfig.email}\n3. 查看帮助中心获取详细文档\n\n请问还有什么可以帮您的吗？`;
 }
 
 export function CustomerServiceProvider({ children }: { children: ReactNode }) {

@@ -44,6 +44,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { supportConfig } from '@/config/support';
 
 // 搜索结果类型
 interface SearchResult {
@@ -376,8 +377,8 @@ export default function HelpCenterPage() {
   };
 
   const handleCopyPhone = () => {
-    navigator.clipboard.writeText('400-888-8888');
-    toast.success('技术支持电话已复制：400-888-8888');
+    navigator.clipboard.writeText(supportConfig.phone);
+    toast.success(`技术支持电话已复制：${supportConfig.phone}`);
   };
 
   const handleOpenGuideCategory = (categoryId: string) => {
@@ -430,7 +431,7 @@ export default function HelpCenterPage() {
             <CardContent className="p-6 text-center">
               <Phone className="w-8 h-8 text-orange-600 mb-2" />
               <p className="font-medium">技术支持</p>
-              <p className="text-sm text-gray-500 mt-1">400-888-8888</p>
+              <p className="text-sm text-gray-500 mt-1">{supportConfig.phone}</p>
             </CardContent>
           </Card>
         </div>
@@ -619,7 +620,10 @@ export default function HelpCenterPage() {
                   <MessageCircle className="w-4 h-4 mr-2" />
                   在线咨询
                 </Button>
-                <Button onClick={() => toast.success('技术支持邮箱：support@gov.com，已复制到剪贴板')}>
+                <Button onClick={() => {
+                  navigator.clipboard.writeText(supportConfig.email);
+                  toast.success(`技术支持邮箱已复制：${supportConfig.email}`);
+                }}>
                   <Mail className="w-4 h-4 mr-2" />
                   发送邮件
                 </Button>
