@@ -19,14 +19,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { ArticleDialog } from '@/components/article-dialog';
-import { VideoTutorialDialog, type VideoTutorial } from '@/components/video-tutorial-dialog';
 import { useCustomerService } from '@/components/customer-service';
 import { guideArticles, getArticleById, type GuideArticle } from '@/data/guide-articles';
 import {
   BookOpen,
   Search,
   FileText,
-  Video,
   MessageCircle,
   Phone,
   Mail,
@@ -42,8 +40,6 @@ import {
   Package,
   AlertTriangle,
   X,
-  Play,
-  Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -248,57 +244,7 @@ export default function HelpCenterPage() {
   const [selectedArticle, setSelectedArticle] = useState<GuideArticle | null>(null);
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const [articleViews, setArticleViews] = useState<Record<string, number>>(defaultViews);
-  const [videoTutorials, setVideoTutorials] = useState<VideoTutorial[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<VideoTutorial | null>(null);
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const { openChat } = useCustomerService();
-
-  // 获取视频教程列表
-  useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        const response = await fetch('/api/video-tutorials');
-        const result = await response.json();
-        if (result.success && result.data) {
-          setVideoTutorials(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch video tutorials:', error);
-      }
-    };
-    fetchVideos();
-  }, []);
-
-  // 生成视频
-  const handleGenerateVideo = async (videoId: string) => {
-    try {
-      const response = await fetch('/api/video-tutorials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId }),
-      });
-      const result = await response.json();
-      if (result.success && result.videoUrl) {
-        // 更新视频列表
-        setVideoTutorials(prev => prev.map(v => 
-          v.id === videoId 
-            ? { ...v, videoUrl: result.videoUrl, generated: true }
-            : v
-        ));
-        // 更新当前选中的视频
-        setSelectedVideo(prev => prev?.id === videoId 
-          ? { ...prev, videoUrl: result.videoUrl, generated: true }
-          : prev
-        );
-        toast.success('视频生成成功');
-      } else {
-        throw new Error(result.error || '视频生成失败');
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '视频生成失败');
-      throw error;
-    }
-  };
 
   // 打开文章的处理函数
   const handleOpenArticle = async (articleId: string) => {
@@ -465,19 +411,12 @@ export default function HelpCenterPage() {
         </div>
 
         {/* 快捷入口 */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('guides')}>
             <CardContent className="p-6 text-center">
               <FileText className="w-8 h-8 mx-auto text-blue-600 mb-2" />
               <p className="font-medium">使用文档</p>
               <p className="text-sm text-gray-500 mt-1">详细功能说明</p>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('videos')}>
-            <CardContent className="p-6 text-center">
-              <Video className="w-8 h-8 mx-auto text-purple-600 mb-2" />
-              <p className="font-medium">视频教程</p>
-              <p className="text-sm text-gray-500 mt-1">操作演示视频</p>
             </CardContent>
           </Card>
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={openChat}>
@@ -502,7 +441,6 @@ export default function HelpCenterPage() {
             <TabsTrigger value="faq">常见问题</TabsTrigger>
             <TabsTrigger value="guides">使用指南</TabsTrigger>
             <TabsTrigger value="hot">热门问题</TabsTrigger>
-            <TabsTrigger value="videos">视频教程</TabsTrigger>
           </TabsList>
 
           {/* 常见问题 */}
@@ -666,66 +604,6 @@ export default function HelpCenterPage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* 视频教程 */}
-          <TabsContent value="videos">
-            <div className="grid grid-cols-3 gap-6">
-              {videoTutorials.map((video) => (
-                <Card 
-                  key={video.id} 
-                  className="hover:shadow-md transition-shadow cursor-pointer group"
-                  onClick={() => {
-                    setSelectedVideo(video);
-                    setVideoDialogOpen(true);
-                  }}
-                >
-                  <div className="relative aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
-                    {video.videoUrl ? (
-                      <video 
-                        src={video.videoUrl} 
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100">
-                        <div className="text-center">
-                          <Play className="w-12 h-12 mx-auto text-purple-400 mb-2" />
-                          <p className="text-sm text-gray-500">点击生成视频</p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Play className="w-5 h-5 text-purple-600 ml-1" />
-                      </div>
-                    </div>
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      {video.duration}s
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary" className="text-xs">{video.categoryTitle}</Badge>
-                      {video.generated && (
-                        <Badge variant="outline" className="text-xs text-green-600 border-green-300">已生成</Badge>
-                      )}
-                    </div>
-                    <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">{video.title}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{video.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            {videoTutorials.length === 0 && (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Video className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                  <p className="text-gray-500">暂无视频教程</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
         </Tabs>
 
         {/* 联系支持 */}
@@ -813,13 +691,6 @@ export default function HelpCenterPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* 视频教程弹窗 */}
-      <VideoTutorialDialog
-        video={selectedVideo}
-        open={videoDialogOpen}
-        onOpenChange={setVideoDialogOpen}
-      />
     </AppLayout>
   );
 }
