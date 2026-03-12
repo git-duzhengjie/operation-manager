@@ -1,7 +1,7 @@
 'use client';
 
 import { AppSidebar } from './app-sidebar';
-import { Bell, Search, User, X, Settings, LogOut, HelpCircle, ChevronRight, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
+import { Bell, Search, User, X, Settings, LogOut, HelpCircle, Clock, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -201,7 +200,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center text-blue-600 cursor-pointer">
+                <DropdownMenuItem 
+                  className="text-center text-blue-600 cursor-pointer"
+                  onClick={() => router.push('/notifications')}
+                >
                   查看全部通知
                 </DropdownMenuItem>
               </DropdownMenuContent>
