@@ -203,11 +203,11 @@ const guides = [
 
 // 热门问题
 const hotQuestions = [
-  { title: '如何重置密码？', views: 1234 },
-  { title: '工单如何转派？', views: 987 },
-  { title: '如何导出报表？', views: 876 },
-  { title: '资产如何批量导入？', views: 654 },
-  { title: '如何设置通知偏好？', views: 543 },
+  { title: '如何重置密码？', views: 1234, articleId: 'hot-1' },
+  { title: '工单如何转派？', views: 987, articleId: 'hot-2' },
+  { title: '如何导出报表？', views: 876, articleId: 'hot-3' },
+  { title: '资产如何批量导入？', views: 654, articleId: 'hot-4' },
+  { title: '如何设置通知偏好？', views: 543, articleId: 'hot-5' },
 ];
 
 export default function HelpCenterPage() {
@@ -451,7 +451,7 @@ export default function HelpCenterPage() {
                     <div
                       key={index}
                       className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-gray-50 cursor-pointer border"
-                      onClick={() => toast.info(`正在查看：${question.title}`)}
+                      onClick={() => handleOpenArticle(question.articleId)}
                     >
                       <div className="flex items-center gap-4">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
