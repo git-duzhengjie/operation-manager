@@ -398,6 +398,7 @@ export default function HelpCenterPage() {
                         <div
                           key={index}
                           className="flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 cursor-pointer group"
+                          onClick={() => toast.info(`《${article.title}》文档正在编写中，敬请期待`)}
                         >
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-gray-400" />
@@ -407,7 +408,7 @@ export default function HelpCenterPage() {
                         </div>
                       ))}
                     </div>
-                    <Button variant="link" className="mt-4 p-0 text-blue-600">
+                    <Button variant="link" className="mt-4 p-0 text-blue-600" onClick={() => toast.info(`《${guide.title}》完整版文档正在编写中，敬请期待`)}>
                       查看完整指南
                       <ExternalLink className="w-4 h-4 ml-1" />
                     </Button>
@@ -430,6 +431,7 @@ export default function HelpCenterPage() {
                     <div
                       key={index}
                       className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-gray-50 cursor-pointer border"
+                      onClick={() => toast.info(`正在查看：${question.title}`)}
                     >
                       <div className="flex items-center gap-4">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
