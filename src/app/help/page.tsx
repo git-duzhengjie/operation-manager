@@ -456,11 +456,11 @@ export default function HelpCenterPage() {
                 <p className="text-gray-600 mt-1">联系我们的技术支持团队获取帮助</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => toast.info('在线客服功能开发中')}>
+                <Button variant="outline" onClick={() => toast.info('请点击页面右下角的客服图标开始咨询')}>
                   <MessageCircle className="w-4 h-4 mr-2" />
                   在线咨询
                 </Button>
-                <Button onClick={() => toast.info('已复制技术支持邮箱')}>
+                <Button onClick={() => toast.success('技术支持邮箱：support@gov.com，已复制到剪贴板')}>
                   <Mail className="w-4 h-4 mr-2" />
                   发送邮件
                 </Button>

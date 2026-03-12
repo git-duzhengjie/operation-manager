@@ -1,6 +1,7 @@
 'use client';
 
 import { AppSidebar } from './app-sidebar';
+import { CustomerService } from './customer-service';
 import { Bell, Search, User, X, Settings, LogOut, HelpCircle, Clock, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -214,6 +215,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      
+      {/* 在线客服 */}
+      <CustomerService />
     </div>
   );
 }
