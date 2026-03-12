@@ -197,7 +197,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <Settings className="w-4 h-4 mr-2" />
                   个人设置
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => toast.info('帮助中心功能开发中')}>
+                <DropdownMenuItem onClick={() => router.push('/help')}>
                   <HelpCircle className="w-4 h-4 mr-2" />
                   帮助中心
                 </DropdownMenuItem>
