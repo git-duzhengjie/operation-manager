@@ -1,15 +1,78 @@
 'use client';
 
 import { AppSidebar } from './app-sidebar';
-import { Bell, Search, User, X } from 'lucide-react';
+import { Bell, Search, User, X, Settings, LogOut, HelpCircle, ChevronRight, CheckCircle, AlertCircle, Info, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+// 模拟通知数据
+const mockNotifications = [
+  {
+    id: '1',
+    title: '工单已分配',
+    message: '工单 WO20240101001 已分配给您处理',
+    type: 'info',
+    time: '5分钟前',
+    read: false,
+  },
+  {
+    id: '2',
+    title: '告警通知',
+    message: '服务器 AST001 CPU使用率超过90%',
+    type: 'warning',
+    time: '10分钟前',
+    read: false,
+  },
+  {
+    id: '3',
+    title: '工单已完成',
+    message: '工单 WO20240101003 已被标记为已完成',
+    type: 'success',
+    time: '30分钟前',
+    read: true,
+  },
+  {
+    id: '4',
+    title: '系统升级通知',
+    message: '系统将于今晚22:00进行升级维护',
+    type: 'info',
+    time: '1小时前',
+    read: true,
+  },
+  {
+    id: '5',
+    title: '知识库更新',
+    message: '有3篇新文章被添加到知识库',
+    type: 'success',
+    time: '2小时前',
+    read: true,
+  },
+];
+
+const notificationIcons: Record<string, React.ReactNode> = {
+  info: <Info className="w-4 h-4 text-blue-500" />,
+  warning: <AlertCircle className="w-4 h-4 text-orange-500" />,
+  success: <CheckCircle className="w-4 h-4 text-green-500" />,
+};
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
+  const [notifications, setNotifications] = useState(mockNotifications);
   const router = useRouter();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleClearSearch = () => {
     setSearchValue('');
@@ -25,6 +88,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     if (e.key === 'Enter' && searchValue.trim()) {
       handleSearch();
     }
+  };
+
+  // 标记通知为已读
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
+  };
+
+  // 标记全部已读
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    toast.success('已将所有通知标记为已读');
+  };
+
+  // 退出登录
+  const handleLogout = () => {
+    toast.success('已退出登录');
+    // 实际项目中应该清除登录状态并跳转到登录页
   };
 
   return (
@@ -53,12 +135,108 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <Bell className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
+            {/* 通知按钮 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>通知</span>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={handleMarkAllAsRead}
+                      className="text-xs text-blue-600 hover:underline font-normal"
+                    >
+                      全部标记已读
+                    </button>
+                  )}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      暂无通知
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`p-3 hover:bg-gray-50 cursor-pointer border-l-2 ${
+                          notification.read ? 'border-transparent' : 'border-blue-500 bg-blue-50/30'
+                        }`}
+                        onClick={() => handleMarkAsRead(notification.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            {notificationIcons[notification.type]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className={`text-sm ${notification.read ? 'text-gray-600' : 'font-medium text-gray-900'}`}>
+                                {notification.title}
+                              </p>
+                              {!notification.read && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <div className="flex items-center text-xs text-gray-400 mt-1">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {notification.time}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-center text-blue-600 cursor-pointer">
+                  查看全部通知
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* 用户菜单 */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <User className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span>管理员</span>
+                    <span className="text-xs text-gray-500 font-normal">admin@gov.com</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => toast.info('个人设置功能开发中')}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  个人设置
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toast.info('帮助中心功能开发中')}>
+                  <HelpCircle className="w-4 h-4 mr-2" />
+                  帮助中心
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
