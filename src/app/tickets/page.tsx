@@ -3,7 +3,9 @@
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -19,6 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
@@ -27,9 +36,11 @@ import {
   Download,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  CheckCircle
 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 // 模拟工单数据
 const mockTickets = [
@@ -105,6 +116,81 @@ export default function TicketsPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  
+  // 新建工单对话框状态
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [newTicketNo, setNewTicketNo] = useState('');
+  
+  // 表单字段
+  const [formData, setFormData] = useState({
+    type: '',
+    title: '',
+    priority: 'medium',
+    customer: '',
+    project: '',
+    description: '',
+    assignee: '',
+  });
+
+  const handleNewTicket = () => {
+    setShowNewTicket(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      type: '',
+      title: '',
+      priority: 'medium',
+      customer: '',
+      project: '',
+      description: '',
+      assignee: '',
+    });
+  };
+
+  const handleSubmit = async () => {
+    // 验证
+    if (!formData.type) {
+      toast.error('请选择工单类型');
+      return;
+    }
+    if (!formData.title.trim()) {
+      toast.error('请输入工单标题');
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error('请输入问题描述');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // 模拟提交
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 生成工单号
+      const ticketNo = `WO${Date.now().toString().slice(-10)}`;
+      setNewTicketNo(ticketNo);
+      
+      setShowNewTicket(false);
+      setShowSuccess(true);
+      resetForm();
+      
+      toast.success('工单创建成功');
+    } catch (error) {
+      toast.error('创建失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowNewTicket(false);
+    resetForm();
+  };
 
   return (
     <AppLayout>
@@ -115,7 +201,7 @@ export default function TicketsPage() {
             <h1 className="text-2xl font-bold text-gray-900">工单管理</h1>
             <p className="text-gray-600 mt-1">管理所有运维工单</p>
           </div>
-          <Button>
+          <Button onClick={handleNewTicket}>
             <Plus className="w-4 h-4 mr-2" />
             新建工单
           </Button>
@@ -219,13 +305,13 @@ export default function TicketsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" title="查看">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" title="编辑">
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" title="删除">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -236,6 +322,159 @@ export default function TicketsPage() {
           </Table>
         </Card>
       </div>
+
+      {/* 新建工单对话框 */}
+      <Dialog open={showNewTicket} onOpenChange={setShowNewTicket}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>新建工单</DialogTitle>
+            <DialogDescription>
+              填写工单信息，创建新的运维工单
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            {/* 基本信息 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">工单类型 *</Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                  <SelectTrigger id="type">
+                    <SelectValue placeholder="选择类型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="incident">事件管理</SelectItem>
+                    <SelectItem value="request">请求管理</SelectItem>
+                    <SelectItem value="change">变更管理</SelectItem>
+                    <SelectItem value="problem">问题管理</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="priority">优先级</Label>
+                <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                  <SelectTrigger id="priority">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urgent">紧急</SelectItem>
+                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="low">低</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customer">客户</Label>
+                <Select value={formData.customer} onValueChange={(value) => setFormData({...formData, customer: value})}>
+                  <SelectTrigger id="customer">
+                    <SelectValue placeholder="选择客户" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="财政局">市财政局</SelectItem>
+                    <SelectItem value="人社局">市人社局</SelectItem>
+                    <SelectItem value="卫健委">市卫健委</SelectItem>
+                    <SelectItem value="公安局">市公安局</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="project">项目</Label>
+                <Select value={formData.project} onValueChange={(value) => setFormData({...formData, project: value})}>
+                  <SelectTrigger id="project">
+                    <SelectValue placeholder="选择项目" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="预算系统">预算管理系统</SelectItem>
+                    <SelectItem value="人事系统">人事管理系统</SelectItem>
+                    <SelectItem value="医院系统">医院信息系统</SelectItem>
+                    <SelectItem value="警务系统">警务综合平台</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="assignee">指派给</Label>
+              <Select value={formData.assignee} onValueChange={(value) => setFormData({...formData, assignee: value})}>
+                <SelectTrigger id="assignee">
+                  <SelectValue placeholder="选择处理人（可选）" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="张三">张三</SelectItem>
+                  <SelectItem value="李四">李四</SelectItem>
+                  <SelectItem value="王五">王五</SelectItem>
+                  <SelectItem value="赵六">赵六</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">标题 *</Label>
+              <Input
+                id="title"
+                placeholder="请输入工单标题"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">问题描述 *</Label>
+              <Textarea
+                id="description"
+                placeholder="请详细描述问题或需求..."
+                rows={5}
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+              />
+            </div>
+
+            {/* 按钮组 */}
+            <div className="flex justify-end space-x-4 pt-4 border-t">
+              <Button variant="outline" onClick={handleCancel}>
+                取消
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting}>
+                {isSubmitting ? '创建中...' : '创建工单'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 成功提示 */}
+      <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+            </div>
+            <DialogTitle className="text-center">工单创建成功</DialogTitle>
+            <DialogDescription className="text-center">
+              工单号：
+              <div className="font-mono text-lg font-bold text-blue-600 mt-2">
+                {newTicketNo}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center space-x-4 mt-4">
+            <Button variant="outline" onClick={() => setShowSuccess(false)}>
+              关闭
+            </Button>
+            <Button onClick={() => setShowSuccess(false)}>
+              查看工单
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
