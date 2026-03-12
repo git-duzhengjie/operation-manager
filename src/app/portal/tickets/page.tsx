@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Search, Eye, Clock, User, Building2, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, Eye, Clock, User, Building2, Calendar, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -121,13 +121,9 @@ export default function PortalTicketsPage() {
     );
   }, [searchKeyword]);
 
-  // 查询处理
-  const handleSearch = () => {
-    if (searchKeyword.trim()) {
-      toast.success(`找到 ${filteredTickets.length} 条匹配的工单`);
-    } else {
-      toast.info('请输入工单号或关键字进行查询');
-    }
+  // 清除搜索
+  const handleClearSearch = () => {
+    setSearchKeyword('');
   };
 
   // 查看详情
@@ -148,18 +144,24 @@ export default function PortalTicketsPage() {
         {/* 搜索 */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="输入工单号或关键字..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {searchKeyword && (
+                  <button
+                    onClick={handleClearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                  </button>
+                )}
               </div>
-              <Button onClick={handleSearch}>查询</Button>
             </div>
           </CardContent>
         </Card>
