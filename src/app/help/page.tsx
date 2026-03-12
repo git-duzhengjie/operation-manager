@@ -7,6 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -34,9 +40,20 @@ import {
   Ticket,
   Package,
   AlertTriangle,
+  X,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+// 搜索结果类型
+interface SearchResult {
+  type: 'faq' | 'guide' | 'hot';
+  typeName: string;
+  title: string;
+  description: string;
+  action: () => void;
+}
 
 // 常见问题分类
 const faqCategories = [
@@ -221,12 +238,116 @@ const defaultViews: Record<string, number> = {
 
 export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('faq');
   const [selectedArticle, setSelectedArticle] = useState<GuideArticle | null>(null);
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
   const [articleViews, setArticleViews] = useState<Record<string, number>>(defaultViews);
   const { openChat } = useCustomerService();
+
+  // 打开文章的处理函数
+  const handleOpenArticle = async (articleId: string) => {
+    const article = getArticleById(articleId);
+    if (article) {
+      setSearchDialogOpen(false); // 关闭搜索弹窗
+      setSelectedArticle(article);
+      setArticleDialogOpen(true);
+      // 通过API增加浏览次数
+      try {
+        const response = await fetch('/api/article-views', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articleId }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          setArticleViews(prev => ({
+            ...prev,
+            [articleId]: result.viewCount,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to update view count:', error);
+      }
+    }
+  };
+
+  // 搜索功能
+  const handleSearch = () => {
+    const keyword = searchKeyword.trim().toLowerCase();
+    if (!keyword) {
+      toast.info('请输入搜索关键词');
+      return;
+    }
+
+    const results: SearchResult[] = [];
+
+    // 搜索常见问题
+    faqCategories.forEach((category) => {
+      category.questions.forEach((q) => {
+        if (q.q.toLowerCase().includes(keyword) || q.a.toLowerCase().includes(keyword)) {
+          results.push({
+            type: 'faq',
+            typeName: '常见问题',
+            title: q.q,
+            description: q.a.substring(0, 100) + (q.a.length > 100 ? '...' : ''),
+            action: () => {
+              setActiveTab('faq');
+              setSearchDialogOpen(false);
+              // 滚动到对应问题
+              setTimeout(() => {
+                const element = document.querySelector(`[data-faq="${category.id}-${q.q}"]`);
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }, 100);
+            },
+          });
+        }
+      });
+    });
+
+    // 搜索使用指南文章
+    guideArticles.forEach((article) => {
+      const titleMatch = article.title.toLowerCase().includes(keyword);
+      const contentMatch = article.content.toLowerCase().includes(keyword);
+      const sectionsMatch = article.sections.some(
+        (s) => s.title.toLowerCase().includes(keyword) || s.content.toLowerCase().includes(keyword)
+      );
+
+      if (titleMatch || contentMatch || sectionsMatch) {
+        results.push({
+          type: 'guide',
+          typeName: '使用指南',
+          title: article.title,
+          description: article.content.substring(0, 100) + (article.content.length > 100 ? '...' : ''),
+          action: () => handleOpenArticle(article.id),
+        });
+      }
+    });
+
+    // 搜索热门问题
+    hotQuestionsBase.forEach((q) => {
+      if (q.title.toLowerCase().includes(keyword)) {
+        results.push({
+          type: 'hot',
+          typeName: '热门问题',
+          title: q.title,
+          description: `浏览次数：${articleViews[q.articleId] || 0} 次`,
+          action: () => handleOpenArticle(q.articleId),
+        });
+      }
+    });
+
+    setSearchResults(results);
+    setSearchDialogOpen(true);
+
+    if (results.length === 0) {
+      toast.info('未找到相关内容，请尝试其他关键词');
+    }
+  };
 
   // 从API获取浏览次数
   useEffect(() => {
@@ -250,12 +371,6 @@ export default function HelpCenterPage() {
     views: articleViews[q.articleId] || 0,
   }));
 
-  const handleSearch = () => {
-    if (searchKeyword.trim()) {
-      toast.info(`搜索: ${searchKeyword}`);
-    }
-  };
-
   const handleFeedback = (questionId: string, isHelpful: boolean) => {
     setFeedbackGiven(questionId);
     toast.success(isHelpful ? '感谢您的反馈！' : '感谢反馈，我们会持续改进');
@@ -266,36 +381,10 @@ export default function HelpCenterPage() {
     toast.success('技术支持电话已复制：400-888-8888');
   };
 
-  const handleOpenArticle = async (articleId: string) => {
-    const article = getArticleById(articleId);
-    if (article) {
-      setSelectedArticle(article);
-      setArticleDialogOpen(true);
-      // 通过API增加浏览次数
-      try {
-        const response = await fetch('/api/article-views', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ articleId }),
-        });
-        const result = await response.json();
-        if (result.success) {
-          setArticleViews(prev => ({
-            ...prev,
-            [articleId]: result.viewCount,
-          }));
-        }
-      } catch (error) {
-        console.error('Failed to update view count:', error);
-      }
-    }
-  };
-
   const handleOpenGuideCategory = (categoryId: string) => {
     const categoryArticles = guideArticles.filter(a => a.category === categoryId);
     if (categoryArticles.length > 0) {
-      setSelectedArticle(categoryArticles[0]);
-      setArticleDialogOpen(true);
+      handleOpenArticle(categoryArticles[0].id);
     }
   };
 
@@ -554,6 +643,62 @@ export default function HelpCenterPage() {
         open={articleDialogOpen}
         onOpenChange={setArticleDialogOpen}
       />
+
+      {/* 搜索结果弹窗 */}
+      <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              搜索结果
+              <span className="text-sm font-normal text-gray-500">
+                找到 {searchResults.length} 条结果
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3 mt-4">
+            {searchResults.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Search className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>未找到相关内容</p>
+                <p className="text-sm mt-2">请尝试使用其他关键词搜索</p>
+              </div>
+            ) : (
+              searchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={result.action}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                      result.type === 'faq' && 'bg-blue-100 text-blue-600',
+                      result.type === 'guide' && 'bg-green-100 text-green-600',
+                      result.type === 'hot' && 'bg-orange-100 text-orange-600'
+                    )}>
+                      {result.type === 'faq' && <HelpCircle className="w-4 h-4" />}
+                      {result.type === 'guide' && <BookOpen className="w-4 h-4" />}
+                      {result.type === 'hot' && <FileText className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {result.typeName}
+                        </Badge>
+                      </div>
+                      <h4 className="font-medium text-gray-900 mb-1">{result.title}</h4>
+                      <p className="text-sm text-gray-500 line-clamp-2">{result.description}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
