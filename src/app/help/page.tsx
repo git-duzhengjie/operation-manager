@@ -210,14 +210,14 @@ const hotQuestionsBase = [
   { title: '如何设置通知偏好？', articleId: 'hot-5' },
 ];
 
-// 初始化浏览次数（默认值）
-const getDefaultViews = (): Record<string, number> => ({
+// 默认浏览次数
+const defaultViews: Record<string, number> = {
   'hot-1': 1234,
   'hot-2': 987,
   'hot-3': 876,
   'hot-4': 654,
   'hot-5': 543,
-});
+};
 
 export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -225,25 +225,24 @@ export default function HelpCenterPage() {
   const [activeTab, setActiveTab] = useState('faq');
   const [selectedArticle, setSelectedArticle] = useState<GuideArticle | null>(null);
   const [articleDialogOpen, setArticleDialogOpen] = useState(false);
-  const [articleViews, setArticleViews] = useState<Record<string, number>>(getDefaultViews);
+  const [articleViews, setArticleViews] = useState<Record<string, number>>(defaultViews);
   const { openChat } = useCustomerService();
 
-  // 客户端初始化浏览次数
+  // 从API获取浏览次数
   useEffect(() => {
-    const stored = localStorage.getItem('articleViews');
-    if (stored) {
+    const fetchViews = async () => {
       try {
-        setArticleViews(JSON.parse(stored));
-      } catch {
-        // 解析失败使用默认值
+        const response = await fetch('/api/article-views');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setArticleViews(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch article views:', error);
       }
-    }
+    };
+    fetchViews();
   }, []);
-
-  // 保存浏览次数到localStorage
-  const saveViews = (views: Record<string, number>) => {
-    localStorage.setItem('articleViews', JSON.stringify(views));
-  };
 
   // 获取热门问题列表（带浏览次数）
   const hotQuestions = hotQuestionsBase.map(q => ({
@@ -267,18 +266,28 @@ export default function HelpCenterPage() {
     toast.success('技术支持电话已复制：400-888-8888');
   };
 
-  const handleOpenArticle = (articleId: string) => {
+  const handleOpenArticle = async (articleId: string) => {
     const article = getArticleById(articleId);
     if (article) {
       setSelectedArticle(article);
       setArticleDialogOpen(true);
-      // 增加浏览次数
-      const newViews = {
-        ...articleViews,
-        [articleId]: (articleViews[articleId] || 0) + 1,
-      };
-      setArticleViews(newViews);
-      saveViews(newViews);
+      // 通过API增加浏览次数
+      try {
+        const response = await fetch('/api/article-views', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ articleId }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          setArticleViews(prev => ({
+            ...prev,
+            [articleId]: result.viewCount,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to update view count:', error);
+      }
     }
   };
 

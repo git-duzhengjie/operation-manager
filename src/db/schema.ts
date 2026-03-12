@@ -214,3 +214,12 @@ export const formTemplates = pgTable('form_templates', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// 文章浏览次数表
+export const articleViews = pgTable('article_views', {
+  id: serial('id').primaryKey(),
+  articleId: varchar('article_id', { length: 50 }).notNull().unique(), // 文章ID，如 hot-1, quick-start-1
+  viewCount: integer('view_count').default(0).notNull(), // 浏览次数
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
