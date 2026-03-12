@@ -62,6 +62,7 @@ function getAutoReply(message: string): string {
 export function CustomerService() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hasUnread, setHasUnread] = useState(true); // 是否有未读消息
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -82,6 +83,12 @@ export function CustomerService() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 打开聊天窗口时清除未读状态
+  const handleOpenChat = () => {
+    setIsOpen(true);
+    setHasUnread(false);
+  };
 
   // 发送消息
   const handleSend = async () => {
@@ -129,14 +136,16 @@ export function CustomerService() {
       {/* 悬浮按钮 */}
       {!isOpen && (
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenChat}
           className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50"
           size="icon"
         >
           <MessageCircle className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-            1
-          </span>
+          {hasUnread && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+              1
+            </span>
+          )}
         </Button>
       )}
 
