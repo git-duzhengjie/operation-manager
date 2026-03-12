@@ -19,12 +19,19 @@ import {
   EyeOff,
   Smartphone,
   Mail,
-  MessageSquare
+  MessageSquare,
+  Upload,
+  Loader2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
+  // 头像
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // 个人信息
   const [userInfo, setUserInfo] = useState({
     username: '管理员',
@@ -51,6 +58,53 @@ export default function SettingsPage() {
     alertNotify: true,
     knowledgeNotify: false,
   });
+
+  // 点击更换头像
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 处理头像文件选择
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+
+    // 验证文件大小 (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('图片大小不能超过 2MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+
+    try {
+      // 读取图片并预览
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const dataUrl = event.target?.result as string;
+        
+        // 模拟上传延迟
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setAvatar(dataUrl);
+        setUploadingAvatar(false);
+        toast.success('头像上传成功');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      setUploadingAvatar(false);
+      toast.error('头像上传失败');
+    }
+
+    // 清空 input 以便再次选择同一文件
+    e.target.value = '';
+  };
 
   // 保存个人信息
   const handleSaveProfile = () => {
@@ -122,17 +176,47 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 {/* 头像 */}
                 <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="w-12 h-12 text-blue-600" />
+                  <div className="relative cursor-pointer group" onClick={handleAvatarClick}>
+                    {avatar ? (
+                      <img 
+                        src={avatar} 
+                        alt="用户头像" 
+                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200 group-hover:border-blue-400 transition-colors">
+                        <User className="w-12 h-12 text-blue-600" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shadow-lg">
+                      {uploadingAvatar ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
                     </div>
-                    <button className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
-                      <Camera className="w-4 h-4" />
-                    </button>
+                    {/* 隐藏的文件输入 */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
                   </div>
                   <div>
                     <p className="font-medium">更换头像</p>
-                    <p className="text-sm text-gray-500">支持 JPG、PNG 格式，大小不超过 2MB</p>
+                    <p className="text-sm text-gray-500">支持 JPG、PNG、GIF、WebP 格式，大小不超过 2MB</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={handleAvatarClick}
+                      disabled={uploadingAvatar}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploadingAvatar ? '上传中...' : '选择图片'}
+                    </Button>
                   </div>
                 </div>
 
