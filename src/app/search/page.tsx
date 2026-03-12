@@ -26,13 +26,14 @@ const mockAssets = [
   { id: 'AST004', name: '应用服务器-02', type: '服务器', status: 'running', ip: '192.168.1.103', customer: '市卫健委' },
 ];
 
-// 模拟知识库数据
+// 模拟知识库数据（与知识库管理页面同步）
 const mockKnowledge = [
-  { id: 'KB001', title: '服务器故障排查手册', category: '故障处理', tags: ['服务器', '故障'], views: 256 },
-  { id: 'KB002', title: '数据库性能优化指南', category: '性能优化', tags: ['数据库', '性能'], views: 189 },
-  { id: 'KB003', title: '网络安全配置规范', category: '安全配置', tags: ['网络', '安全'], views: 312 },
-  { id: 'KB004', title: '应用部署操作流程', category: '操作规范', tags: ['部署', '流程'], views: 145 },
-  { id: 'KB005', title: '备份恢复操作手册', category: '数据管理', tags: ['备份', '恢复'], views: 98 },
+  { id: 'KB001', title: 'Windows Server 2019 系统安装配置指南', category: '变更管理', tags: ['服务器', 'Windows', '系统安装'], views: 1234 },
+  { id: 'KB002', title: '网络故障排查标准流程', category: '事件管理', tags: ['网络', '故障排查', '流程'], views: 987 },
+  { id: 'KB003', title: '数据库备份与恢复操作手册', category: '请求管理', tags: ['数据库', '备份', '恢复'], views: 876 },
+  { id: 'KB004', title: 'VPN连接问题排查指南', category: '问题管理', tags: ['VPN', '网络', '排查'], views: 654 },
+  { id: 'KB005', title: 'Linux 系统性能优化指南', category: '变更管理', tags: ['服务器', 'Linux', '性能优化'], views: 567 },
+  { id: 'KB006', title: '网络安全漏洞修复方案', category: '事件管理', tags: ['网络', '安全', '漏洞'], views: 890 },
 ];
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
