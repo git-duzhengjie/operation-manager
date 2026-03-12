@@ -16,6 +16,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useNotifications } from '@/contexts/notification-context';
+import { useUser } from '@/contexts/user-context';
 
 const notificationIcons: Record<string, React.ReactNode> = {
   info: <Info className="w-4 h-4 text-blue-500" />,
@@ -27,6 +28,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { userInfo } = useUser();
 
   const handleClearSearch = () => {
     setSearchValue('');
@@ -158,15 +160,36 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {/* 用户菜单 */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="relative">
+                  {userInfo.avatar ? (
+                    <img 
+                      src={userInfo.avatar} 
+                      alt="用户头像" 
+                      className="w-5 h-5 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span>管理员</span>
-                    <span className="text-xs text-gray-500 font-normal">admin@gov.com</span>
+                  <div className="flex items-center gap-3">
+                    {userInfo.avatar ? (
+                      <img 
+                        src={userInfo.avatar} 
+                        alt="用户头像" 
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User className="w-5 h-5 text-blue-600" />
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{userInfo.username}</span>
+                      <span className="text-xs text-gray-500 font-normal">{userInfo.email}</span>
+                    </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

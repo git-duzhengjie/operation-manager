@@ -25,21 +25,18 @@ import {
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
+import { useUser } from '@/contexts/user-context';
 
 export default function SettingsPage() {
-  // 头像
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const { userInfo, notificationSettings, updateUserInfo, updateNotificationSettings, updateAvatar } = useUser();
+  
+  // 编辑状态的用户信息
+  const [editUserInfo, setEditUserInfo] = useState(userInfo);
+  const [editNotifications, setEditNotifications] = useState(notificationSettings);
+  
+  // 头像上传
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 个人信息
-  const [userInfo, setUserInfo] = useState({
-    username: '管理员',
-    email: 'admin@gov.com',
-    phone: '138****8888',
-    department: '运维部',
-    position: '运维工程师',
-  });
 
   // 密码修改
   const [passwordForm, setPasswordForm] = useState({
@@ -49,14 +46,10 @@ export default function SettingsPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // 通知偏好
-  const [notifications, setNotifications] = useState({
-    emailNotify: true,
-    smsNotify: false,
-    systemNotify: true,
-    workorderNotify: true,
-    alertNotify: true,
-    knowledgeNotify: false,
+  // 同步编辑状态（当 userInfo 从 localStorage 加载后）
+  useState(() => {
+    setEditUserInfo(userInfo);
+    setEditNotifications(notificationSettings);
   });
 
   // 点击更换头像
@@ -92,7 +85,8 @@ export default function SettingsPage() {
         // 模拟上传延迟
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        setAvatar(dataUrl);
+        // 保存到上下文和 localStorage
+        updateAvatar(dataUrl);
         setUploadingAvatar(false);
         toast.success('头像上传成功');
       };
@@ -108,6 +102,7 @@ export default function SettingsPage() {
 
   // 保存个人信息
   const handleSaveProfile = () => {
+    updateUserInfo(editUserInfo);
     toast.success('个人信息已保存');
   };
 
@@ -137,6 +132,7 @@ export default function SettingsPage() {
 
   // 保存通知偏好
   const handleSaveNotifications = () => {
+    updateNotificationSettings(editNotifications);
     toast.success('通知偏好已保存');
   };
 
@@ -177,9 +173,9 @@ export default function SettingsPage() {
                 {/* 头像 */}
                 <div className="flex items-center gap-6">
                   <div className="relative cursor-pointer group" onClick={handleAvatarClick}>
-                    {avatar ? (
+                    {userInfo.avatar ? (
                       <img 
-                        src={avatar} 
+                        src={userInfo.avatar} 
                         alt="用户头像" 
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                       />
@@ -227,36 +223,36 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label>用户名</Label>
                     <Input
-                      value={userInfo.username}
-                      onChange={(e) => setUserInfo({ ...userInfo, username: e.target.value })}
+                      value={editUserInfo.username}
+                      onChange={(e) => setEditUserInfo({ ...editUserInfo, username: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>邮箱</Label>
                     <Input
-                      value={userInfo.email}
-                      onChange={(e) => setUserInfo({ ...userInfo, email: e.target.value })}
+                      value={editUserInfo.email}
+                      onChange={(e) => setEditUserInfo({ ...editUserInfo, email: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>手机号</Label>
                     <Input
-                      value={userInfo.phone}
-                      onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })}
+                      value={editUserInfo.phone}
+                      onChange={(e) => setEditUserInfo({ ...editUserInfo, phone: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>部门</Label>
                     <Input
-                      value={userInfo.department}
-                      onChange={(e) => setUserInfo({ ...userInfo, department: e.target.value })}
+                      value={editUserInfo.department}
+                      onChange={(e) => setEditUserInfo({ ...editUserInfo, department: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>职位</Label>
                     <Input
-                      value={userInfo.position}
-                      onChange={(e) => setUserInfo({ ...userInfo, position: e.target.value })}
+                      value={editUserInfo.position}
+                      onChange={(e) => setEditUserInfo({ ...editUserInfo, position: e.target.value })}
                     />
                   </div>
                 </div>
@@ -414,8 +410,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.emailNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailNotify: checked })}
+                        checked={editNotifications.emailNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, emailNotify: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -427,8 +423,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.smsNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, smsNotify: checked })}
+                        checked={editNotifications.smsNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, smsNotify: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -440,8 +436,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.systemNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, systemNotify: checked })}
+                        checked={editNotifications.systemNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, systemNotify: checked })}
                       />
                     </div>
                   </div>
@@ -462,8 +458,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.workorderNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, workorderNotify: checked })}
+                        checked={editNotifications.workorderNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, workorderNotify: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -475,8 +471,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.alertNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, alertNotify: checked })}
+                        checked={editNotifications.alertNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, alertNotify: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -488,8 +484,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <Switch
-                        checked={notifications.knowledgeNotify}
-                        onCheckedChange={(checked) => setNotifications({ ...notifications, knowledgeNotify: checked })}
+                        checked={editNotifications.knowledgeNotify}
+                        onCheckedChange={(checked) => setEditNotifications({ ...editNotifications, knowledgeNotify: checked })}
                       />
                     </div>
                   </div>
