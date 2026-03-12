@@ -36,8 +36,8 @@ import { Plus, Search, BookOpen, Clock, Eye, Edit, Trash2, Download, Upload, X, 
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 
-// 模拟知识库文章
-const mockArticles = [
+// 初始文章数据
+const initialArticles = [
   {
     id: '1',
     title: 'Windows Server 2019 系统安装配置指南',
@@ -124,6 +124,9 @@ export default function KnowledgePage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
 
+  // 文章列表状态
+  const [articles, setArticles] = useState(initialArticles);
+
   // 新建文章对话框
   const [showNewArticle, setShowNewArticle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,7 +145,7 @@ export default function KnowledgePage() {
 
   // 编辑文章
   const [showEdit, setShowEdit] = useState(false);
-  const [editArticle, setEditArticle] = useState<typeof mockArticles[0] | null>(null);
+  const [editArticle, setEditArticle] = useState<typeof initialArticles[0] | null>(null);
   const [editFormData, setEditFormData] = useState({
     title: '',
     type: '',
@@ -156,7 +159,7 @@ export default function KnowledgePage() {
 
   // 过滤文章
   const filteredArticles = useMemo(() => {
-    return mockArticles.filter(article => {
+    return articles.filter(article => {
       if (tagFilter !== 'all' && !article.tags.includes(tagFilter)) {
         return false;
       }
@@ -174,7 +177,7 @@ export default function KnowledgePage() {
       }
       return true;
     });
-  }, [searchKeyword, typeFilter, tagFilter]);
+  }, [articles, searchKeyword, typeFilter, tagFilter]);
 
   // 清除搜索
   const handleClearSearch = () => {
@@ -203,10 +206,26 @@ export default function KnowledgePage() {
     setIsSubmitting(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 创建新文章，版本号为1
+      const newArticle = {
+        id: String(Date.now()),
+        title: articleFormData.title,
+        type: articleFormData.type,
+        tags: articleFormData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        author: '当前用户',
+        views: 0,
+        version: 1,
+        updatedAt: new Date().toISOString().slice(0, 10),
+        status: 'draft' as const,
+        content: articleFormData.content,
+      };
+      
+      setArticles(prev => [newArticle, ...prev]);
       setShowNewArticle(false);
       setShowSuccess(true);
       setArticleFormData({ title: '', type: '', tags: '', content: '' });
-      toast.success('文章创建成功');
+      toast.success('文章创建成功，版本号：1');
     } catch (error) {
       toast.error('创建失败');
     } finally {
@@ -235,9 +254,51 @@ export default function KnowledgePage() {
     setImporting(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // 模拟导入3篇文章
+      const newArticles = [
+        {
+          id: String(Date.now() + 1),
+          title: '服务器安全加固指南',
+          type: 'change',
+          tags: ['服务器', '安全'],
+          author: '系统导入',
+          views: 0,
+          version: 1,
+          updatedAt: new Date().toISOString().slice(0, 10),
+          status: 'draft' as const,
+          content: '服务器安全加固操作指南...',
+        },
+        {
+          id: String(Date.now() + 2),
+          title: '常见网络问题解决方案',
+          type: 'incident',
+          tags: ['网络', '问题'],
+          author: '系统导入',
+          views: 0,
+          version: 1,
+          updatedAt: new Date().toISOString().slice(0, 10),
+          status: 'draft' as const,
+          content: '常见网络问题及解决方案...',
+        },
+        {
+          id: String(Date.now() + 3),
+          title: '系统监控配置手册',
+          type: 'request',
+          tags: ['监控', '配置'],
+          author: '系统导入',
+          views: 0,
+          version: 1,
+          updatedAt: new Date().toISOString().slice(0, 10),
+          status: 'draft' as const,
+          content: '系统监控配置详细说明...',
+        },
+      ];
+      
+      setArticles(prev => [...newArticles, ...prev]);
       setShowImport(false);
       setImportFile('');
-      toast.success('批量导入成功，共导入 3 篇文章');
+      toast.success('批量导入成功，共导入 3 篇文章，版本号均为 1');
     } catch (error) {
       toast.error('导入失败');
     } finally {
@@ -279,7 +340,7 @@ export default function KnowledgePage() {
   };
 
   // 编辑文章
-  const handleEdit = (article: typeof mockArticles[0]) => {
+  const handleEdit = (article: typeof initialArticles[0]) => {
     setEditArticle(article);
     setEditFormData({
       title: article.title,
@@ -295,13 +356,32 @@ export default function KnowledgePage() {
       toast.error('请输入文章标题');
       return;
     }
+    if (!editArticle) return;
 
     setIsSubmitting(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 更新文章，版本号+1
+      setArticles(prev => prev.map(article => {
+        if (article.id === editArticle.id) {
+          const newVersion = article.version + 1;
+          return {
+            ...article,
+            title: editFormData.title,
+            type: editFormData.type || article.type,
+            tags: editFormData.tags.split(',').map(t => t.trim()).filter(Boolean),
+            content: editFormData.content,
+            version: newVersion,
+            updatedAt: new Date().toISOString().slice(0, 10),
+          };
+        }
+        return article;
+      }));
+      
       setShowEdit(false);
       setEditArticle(null);
-      toast.success('文章已更新');
+      toast.success(`文章已更新，新版本号：${editArticle.version + 1}`);
     } catch (error) {
       toast.error('更新失败');
     } finally {
@@ -316,8 +396,11 @@ export default function KnowledgePage() {
   };
 
   const confirmDelete = async () => {
+    if (!articleToDelete) return;
+    
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
+      setArticles(prev => prev.filter(article => article.id !== articleToDelete));
       toast.success('文章已删除');
       setShowDeleteConfirm(false);
       setArticleToDelete('');
