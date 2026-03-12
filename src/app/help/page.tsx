@@ -211,6 +211,7 @@ const hotQuestions = [
 export default function HelpCenterPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('faq');
   const { openChat } = useCustomerService();
 
   const handleSearch = () => {
@@ -222,6 +223,11 @@ export default function HelpCenterPage() {
   const handleFeedback = (questionId: string, isHelpful: boolean) => {
     setFeedbackGiven(questionId);
     toast.success(isHelpful ? '感谢您的反馈！' : '感谢反馈，我们会持续改进');
+  };
+
+  const handleCopyPhone = () => {
+    navigator.clipboard.writeText('400-888-8888');
+    toast.success('技术支持电话已复制：400-888-8888');
   };
 
   return (
@@ -249,14 +255,14 @@ export default function HelpCenterPage() {
 
         {/* 快捷入口 */}
         <div className="grid grid-cols-4 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('guides')}>
             <CardContent className="p-6 text-center">
               <FileText className="w-8 h-8 mx-auto text-blue-600 mb-2" />
               <p className="font-medium">使用文档</p>
               <p className="text-sm text-gray-500 mt-1">详细功能说明</p>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => toast.info('视频教程功能开发中，敬请期待')}>
             <CardContent className="p-6 text-center">
               <Video className="w-8 h-8 mx-auto text-purple-600 mb-2" />
               <p className="font-medium">视频教程</p>
@@ -270,7 +276,7 @@ export default function HelpCenterPage() {
               <p className="text-sm text-gray-500 mt-1">实时咨询解答</p>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleCopyPhone}>
             <CardContent className="p-6 text-center">
               <Phone className="w-8 h-8 text-orange-600 mb-2" />
               <p className="font-medium">技术支持</p>
@@ -280,7 +286,7 @@ export default function HelpCenterPage() {
         </div>
 
         {/* 常见问题与使用指南 */}
-        <Tabs defaultValue="faq" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="faq">常见问题</TabsTrigger>
             <TabsTrigger value="guides">使用指南</TabsTrigger>
