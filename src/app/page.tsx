@@ -7,66 +7,112 @@ import {
   Clock, 
   CheckCircle, 
   AlertTriangle,
-  TrendingUp,
   Package,
-  Users,
-  Activity,
-  BookOpen
+  BookOpen,
+  Loader2,
 } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
 } from 'recharts';
 import { useRouter } from 'next/navigation';
-
-// 模拟数据
-const stats = [
-  { title: '待处理工单', value: '23', icon: Ticket, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-  { title: '处理中工单', value: '45', icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  { title: '本月完成', value: '156', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
-  { title: '紧急工单', value: '5', icon: AlertTriangle, color: 'text-red-600', bgColor: 'bg-red-100' },
-];
-
-const ticketTrendData = [
-  { date: '01-01', created: 45, resolved: 40 },
-  { date: '01-02', created: 52, resolved: 48 },
-  { date: '01-03', created: 38, resolved: 45 },
-  { date: '01-04', created: 65, resolved: 55 },
-  { date: '01-05', created: 48, resolved: 50 },
-  { date: '01-06', created: 55, resolved: 60 },
-  { date: '01-07', created: 42, resolved: 38 },
-];
-
-const ticketTypeData = [
-  { name: '事件管理', value: 35 },
-  { name: '请求管理', value: 28 },
-  { name: '变更管理', value: 22 },
-  { name: '问题管理', value: 15 },
-];
+import { useState, useEffect } from 'react';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
 
-const recentTickets = [
-  { id: 'WO20240101001', title: '服务器磁盘空间不足告警', status: '处理中', priority: '高', time: '10分钟前' },
-  { id: 'WO20240101002', title: '新员工入职账号申请', status: '待分配', priority: '中', time: '30分钟前' },
-  { id: 'WO20240101003', title: '应用系统升级变更申请', status: '待审批', priority: '高', time: '1小时前' },
-  { id: 'WO20240101004', title: '数据库性能问题排查', status: '处理中', priority: '紧急', time: '2小时前' },
-  { id: 'WO20240101005', title: '网络访问权限申请', status: '已完成', priority: '低', time: '3小时前' },
-];
+// 图标映射
+const iconMap: Record<string, React.ElementType> = {
+  'Ticket': Ticket,
+  'Clock': Clock,
+  'CheckCircle': CheckCircle,
+  'AlertTriangle': AlertTriangle,
+};
+
+interface StatItem {
+  title: string;
+  value: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+}
+
+interface TrendItem {
+  date: string;
+  created: number;
+  resolved: number;
+}
+
+interface TypeItem {
+  name: string;
+  value: number;
+}
+
+interface RecentTicket {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  time: string;
+}
+
+interface DashboardData {
+  stats: StatItem[];
+  ticketTrend: TrendItem[];
+  ticketType: TypeItem[];
+  recentTickets: RecentTicket[];
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setData(result.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!data) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <p className="text-gray-500">加载数据失败，请刷新页面重试</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -78,21 +124,24 @@ export default function DashboardPage() {
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-3xl font-bold mt-2">{stat.value}</p>
+          {data.stats.map((stat) => {
+            const IconComponent = iconMap[stat.icon] || Ticket;
+            return (
+              <Card key={stat.title}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-3xl font-bold mt-2">{stat.value}</p>
+                    </div>
+                    <div className={`p-3 rounded-full ${stat.bgColor}`}>
+                      <IconComponent className={`w-6 h-6 ${stat.color}`} />
+                    </div>
                   </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* 图表区域 */}
@@ -106,7 +155,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={ticketTrendData}>
+                  <LineChart data={data.ticketTrend}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -130,7 +179,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={ticketTypeData}
+                      data={data.ticketType}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -139,7 +188,7 @@ export default function DashboardPage() {
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {ticketTypeData.map((entry, index) => (
+                      {data.ticketType.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -170,8 +219,8 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentTickets.map((ticket) => (
-                    <tr key={ticket.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  {data.recentTickets.map((ticket) => (
+                    <tr key={ticket.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/tickets/${ticket.id}`)}>
                       <td className="py-3 px-4 font-mono text-sm text-blue-600">{ticket.id}</td>
                       <td className="py-3 px-4">{ticket.title}</td>
                       <td className="py-3 px-4">
