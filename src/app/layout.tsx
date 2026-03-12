@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inspector } from 'react-dev-inspector';
 import { Toaster } from '@/components/ui/sonner';
+import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased bg-gray-50">
         {isDev && <Inspector />}
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <Toaster />
       </body>
     </html>

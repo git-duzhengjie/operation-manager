@@ -1,89 +1,14 @@
 'use client';
 
 import { AppLayout } from '@/components/app-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, CheckCircle, AlertCircle, Info, Clock, ChevronRight, Trash2, Check } from 'lucide-react';
+import { Bell, Clock, Trash2, Check, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-
-// 模拟通知数据
-const initialNotifications = [
-  {
-    id: '1',
-    title: '工单已分配',
-    message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。该工单为服务器磁盘空间不足告警，优先级为高。',
-    type: 'info',
-    time: '5分钟前',
-    read: false,
-    category: 'workorder',
-  },
-  {
-    id: '2',
-    title: '告警通知',
-    message: '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。',
-    type: 'warning',
-    time: '10分钟前',
-    read: false,
-    category: 'alert',
-  },
-  {
-    id: '3',
-    title: '工单已完成',
-    message: '工单 WO20240101003 已被标记为已完成，感谢您的处理。',
-    type: 'success',
-    time: '30分钟前',
-    read: true,
-    category: 'workorder',
-  },
-  {
-    id: '4',
-    title: '系统升级通知',
-    message: '系统将于今晚22:00进行升级维护，预计维护时长1小时，届时系统将暂停服务。',
-    type: 'info',
-    time: '1小时前',
-    read: true,
-    category: 'system',
-  },
-  {
-    id: '5',
-    title: '知识库更新',
-    message: '有3篇新文章被添加到知识库：《服务器安全加固指南》、《常见网络问题解决方案》、《系统监控配置手册》。',
-    type: 'success',
-    time: '2小时前',
-    read: true,
-    category: 'knowledge',
-  },
-  {
-    id: '6',
-    title: '资产到期提醒',
-    message: '资产 AST001（应用服务器-01）的维保合同将于7天后到期，请及时续保。',
-    type: 'warning',
-    time: '3小时前',
-    read: false,
-    category: 'asset',
-  },
-  {
-    id: '7',
-    title: '巡检任务完成',
-    message: '本周例行巡检任务已完成，共检查设备45台，发现异常3项，已生成巡检报告。',
-    type: 'success',
-    time: '昨天',
-    read: true,
-    category: 'routine',
-  },
-  {
-    id: '8',
-    title: '新工单待审批',
-    message: '您有2个变更申请等待审批，请及时处理。',
-    type: 'info',
-    time: '昨天',
-    read: true,
-    category: 'workorder',
-  },
-];
+import { useNotifications, Notification } from '@/contexts/notification-context';
 
 const notificationIcons: Record<string, React.ReactNode> = {
   info: <Info className="w-5 h-5 text-blue-500" />,
@@ -101,13 +26,19 @@ const categoryMap: Record<string, { label: string; color: string }> = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearReadNotifications 
+  } = useNotifications();
+  
   const [activeTab, setActiveTab] = useState('all');
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   // 过滤通知
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = notifications.filter((n: Notification) => {
     if (activeTab === 'all') return true;
     if (activeTab === 'unread') return !n.read;
     return n.category === activeTab;
@@ -115,27 +46,25 @@ export default function NotificationsPage() {
 
   // 标记单条已读
   const handleMarkAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+    markAsRead(id);
     toast.success('已标记为已读');
   };
 
   // 标记全部已读
   const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    markAllAsRead();
     toast.success('已将所有通知标记为已读');
   };
 
   // 删除通知
   const handleDelete = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    deleteNotification(id);
     toast.success('通知已删除');
   };
 
   // 清空已读通知
   const handleClearRead = () => {
-    setNotifications(prev => prev.filter(n => !n.read));
+    clearReadNotifications();
     toast.success('已清空已读通知');
   };
 
@@ -193,7 +122,7 @@ export default function NotificationsPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {filteredNotifications.map((notification) => (
+                {filteredNotifications.map((notification: Notification) => (
                   <Card 
                     key={notification.id}
                     className={`transition-all hover:shadow-md ${
