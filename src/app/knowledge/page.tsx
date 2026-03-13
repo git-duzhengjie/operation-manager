@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useMemo } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +34,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, BookOpen, Clock, Eye, Edit, Trash2, Download, Upload, X, CheckCircle } from 'lucide-react';
-import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 
 // 初始文章数据
@@ -127,6 +127,15 @@ export default function KnowledgePage() {
   // 文章列表状态
   const [articles, setArticles] = useState(initialArticles);
 
+  // 可用标签列表
+  const [availableTags, setAvailableTags] = useState<Array<{id: string; name: string; color: string}>>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
+  const [tagSearch, setTagSearch] = useState('');
+  const [editTagSearch, setEditTagSearch] = useState('');
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [showEditTagDropdown, setShowEditTagDropdown] = useState(false);
+
   // 新建文章对话框
   const [showNewArticle, setShowNewArticle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,6 +165,22 @@ export default function KnowledgePage() {
   // 删除确认
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<string>('');
+
+  // 获取可用标签列表
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/knowledge-tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableTags(data.tags || []);
+        }
+      } catch (error) {
+        console.error('获取标签列表失败:', error);
+      }
+    };
+    fetchTags();
+  }, []);
 
   // 过滤文章
   const filteredArticles = useMemo(() => {
@@ -207,12 +232,18 @@ export default function KnowledgePage() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // 将标签 ID 转换为标签名称
+      const tagNames = selectedTags.map(tagId => {
+        const tag = availableTags.find(t => t.id === tagId);
+        return tag?.name || tagId;
+      });
+      
       // 创建新文章，版本号为1
       const newArticle = {
         id: String(Date.now()),
         title: articleFormData.title,
         type: articleFormData.type,
-        tags: articleFormData.tags.split(',').map(t => t.trim()).filter(Boolean),
+        tags: tagNames,
         author: '当前用户',
         views: 0,
         version: 1,
@@ -225,6 +256,7 @@ export default function KnowledgePage() {
       setShowNewArticle(false);
       setShowSuccess(true);
       setArticleFormData({ title: '', type: '', tags: '', content: '' });
+      setSelectedTags([]);
       toast.success('文章创建成功，版本号：1');
     } catch (error) {
       toast.error('创建失败');
@@ -342,6 +374,14 @@ export default function KnowledgePage() {
   // 编辑文章
   const handleEdit = (article: typeof initialArticles[0]) => {
     setEditArticle(article);
+    
+    // 将标签名称转换为标签 ID
+    const tagIds = article.tags.map(tagName => {
+      const tag = availableTags.find(t => t.name === tagName);
+      return tag?.id || tagName;
+    });
+    
+    setEditSelectedTags(tagIds);
     setEditFormData({
       title: article.title,
       type: article.type,
@@ -362,6 +402,12 @@ export default function KnowledgePage() {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // 将标签 ID 转换为标签名称
+      const tagNames = editSelectedTags.map(tagId => {
+        const tag = availableTags.find(t => t.id === tagId);
+        return tag?.name || tagId;
+      });
+      
       // 更新文章，版本号+1
       setArticles(prev => prev.map(article => {
         if (article.id === editArticle.id) {
@@ -370,7 +416,7 @@ export default function KnowledgePage() {
             ...article,
             title: editFormData.title,
             type: editFormData.type || article.type,
-            tags: editFormData.tags.split(',').map(t => t.trim()).filter(Boolean),
+            tags: tagNames,
             content: editFormData.content,
             version: newVersion,
             updatedAt: new Date().toISOString().slice(0, 10),
@@ -572,7 +618,14 @@ export default function KnowledgePage() {
       </div>
 
       {/* 新建文章对话框 */}
-      <Dialog open={showNewArticle} onOpenChange={setShowNewArticle}>
+      <Dialog open={showNewArticle} onOpenChange={(open) => {
+        setShowNewArticle(open);
+        if (!open) {
+          setSelectedTags([]);
+          setTagSearch('');
+          setShowTagDropdown(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新建文章</DialogTitle>
@@ -611,11 +664,85 @@ export default function KnowledgePage() {
               </div>
               <div className="space-y-2">
                 <Label>标签</Label>
-                <Input
-                  placeholder="多个标签用逗号分隔"
-                  value={articleFormData.tags}
-                  onChange={(e) => setArticleFormData({...articleFormData, tags: e.target.value})}
-                />
+                <div className="relative">
+                  <div 
+                    className="min-h-[38px] border rounded-md p-2 cursor-pointer flex flex-wrap gap-2 items-center"
+                    onClick={() => setShowTagDropdown(!showTagDropdown)}
+                  >
+                    {selectedTags.length === 0 ? (
+                      <span className="text-gray-400 text-sm">点击选择标签</span>
+                    ) : (
+                      selectedTags.map(tagId => {
+                        const tag = availableTags.find(t => t.id === tagId);
+                        return (
+                          <Badge 
+                            key={tagId}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTags(selectedTags.filter(id => id !== tagId));
+                            }}
+                          >
+                            {tag?.name || tagId}
+                            <X className="w-3 h-3 ml-1" />
+                          </Badge>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  {showTagDropdown && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      <div className="p-2 border-b sticky top-0 bg-white">
+                        <Input
+                          placeholder="搜索标签..."
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="p-1">
+                        {availableTags
+                          .filter(tag => 
+                            tag.name.toLowerCase().includes(tagSearch.toLowerCase())
+                          )
+                          .map(tag => (
+                            <div
+                              key={tag.id}
+                              className={`flex items-center space-x-2 px-3 py-2 rounded cursor-pointer hover:bg-gray-100 ${
+                                selectedTags.includes(tag.id) ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (selectedTags.includes(tag.id)) {
+                                  setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                                } else {
+                                  setSelectedTags([...selectedTags, tag.id]);
+                                }
+                              }}
+                            >
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: tag.color || '#3b82f6' }}
+                              />
+                              <span className="text-sm">{tag.name}</span>
+                              {selectedTags.includes(tag.id) && (
+                                <CheckCircle className="w-4 h-4 ml-auto text-blue-600" />
+                              )}
+                            </div>
+                          ))}
+                        {availableTags.filter(tag => 
+                          tag.name.toLowerCase().includes(tagSearch.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                            未找到匹配的标签
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -698,7 +825,14 @@ export default function KnowledgePage() {
       </Dialog>
 
       {/* 编辑文章对话框 */}
-      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+      <Dialog open={showEdit} onOpenChange={(open) => {
+        setShowEdit(open);
+        if (!open) {
+          setEditSelectedTags([]);
+          setEditTagSearch('');
+          setShowEditTagDropdown(false);
+        }
+      }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>编辑文章</DialogTitle>
@@ -736,10 +870,85 @@ export default function KnowledgePage() {
               </div>
               <div className="space-y-2">
                 <Label>标签</Label>
-                <Input
-                  value={editFormData.tags}
-                  onChange={(e) => setEditFormData({...editFormData, tags: e.target.value})}
-                />
+                <div className="relative">
+                  <div 
+                    className="min-h-[38px] border rounded-md p-2 cursor-pointer flex flex-wrap gap-2 items-center"
+                    onClick={() => setShowEditTagDropdown(!showEditTagDropdown)}
+                  >
+                    {editSelectedTags.length === 0 ? (
+                      <span className="text-gray-400 text-sm">点击选择标签</span>
+                    ) : (
+                      editSelectedTags.map(tagId => {
+                        const tag = availableTags.find(t => t.id === tagId);
+                        return (
+                          <Badge 
+                            key={tagId}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditSelectedTags(editSelectedTags.filter(id => id !== tagId));
+                            }}
+                          >
+                            {tag?.name || tagId}
+                            <X className="w-3 h-3 ml-1" />
+                          </Badge>
+                        );
+                      })
+                    )}
+                  </div>
+                  
+                  {showEditTagDropdown && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      <div className="p-2 border-b sticky top-0 bg-white">
+                        <Input
+                          placeholder="搜索标签..."
+                          value={editTagSearch}
+                          onChange={(e) => setEditTagSearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="p-1">
+                        {availableTags
+                          .filter(tag => 
+                            tag.name.toLowerCase().includes(editTagSearch.toLowerCase())
+                          )
+                          .map(tag => (
+                            <div
+                              key={tag.id}
+                              className={`flex items-center space-x-2 px-3 py-2 rounded cursor-pointer hover:bg-gray-100 ${
+                                editSelectedTags.includes(tag.id) ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (editSelectedTags.includes(tag.id)) {
+                                  setEditSelectedTags(editSelectedTags.filter(id => id !== tag.id));
+                                } else {
+                                  setEditSelectedTags([...editSelectedTags, tag.id]);
+                                }
+                              }}
+                            >
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: tag.color || '#3b82f6' }}
+                              />
+                              <span className="text-sm">{tag.name}</span>
+                              {editSelectedTags.includes(tag.id) && (
+                                <CheckCircle className="w-4 h-4 ml-auto text-blue-600" />
+                              )}
+                            </div>
+                          ))}
+                        {availableTags.filter(tag => 
+                          tag.name.toLowerCase().includes(editTagSearch.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                            未找到匹配的标签
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
