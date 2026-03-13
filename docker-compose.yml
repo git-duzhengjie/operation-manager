@@ -16,9 +16,6 @@ services:
     environment:
       # 数据库配置
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/ops_platform}
-      # Supabase 配置（可选）
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
       # AI 配置
       - COZE_API_KEY=${COZE_API_KEY:-}
       - COZE_BOT_ID=${COZE_BOT_ID:-}
@@ -66,25 +63,6 @@ services:
       retries: 5
       start_period: 10s
 
-  # ===========================================
-  # Redis 缓存（可选，用于会话存储）
-  # ===========================================
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: ops-redis
-  #   restart: unless-stopped
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   networks:
-  #     - ops-network
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-
 networks:
   ops-network:
     driver: bridge
@@ -92,5 +70,3 @@ networks:
 volumes:
   postgres_data:
     driver: local
-  # redis_data:
-  #   driver: local

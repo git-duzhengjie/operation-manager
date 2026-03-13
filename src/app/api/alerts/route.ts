@@ -24,7 +24,10 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化告警数据
-function formatAlert(row: Record<string, unknown>) {
+function formatAlert(row: Record<string, unknown> | null) {
+  if (!row) {
+    return null;
+  }
   return {
     id: String(row.id),
     alertId: row.alert_id as string,

@@ -81,7 +81,7 @@
 | Next.js API Routes | 16 | 后端 API |
 | PostgreSQL | - | 关系型数据库 |
 | Drizzle ORM | 0.45 | 数据库 ORM |
-| Supabase | 2.x | 数据库客户端 |
+| pg | 8.x | PostgreSQL 客户端 |
 | Coze SDK | 0.7.x | AI 大模型集成 |
 
 ## 项目结构
@@ -229,14 +229,10 @@
 ### 必需环境变量
 
 ```bash
-# 数据库配置
+# 数据库配置（必需）
 DATABASE_URL=postgresql://user:password@host:5432/database
 
-# Supabase 配置（可选）
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-
-# AI 配置
+# AI 配置（可选）
 COZE_API_KEY=xxx
 COZE_BOT_ID=xxx
 
