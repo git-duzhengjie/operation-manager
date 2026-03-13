@@ -396,6 +396,17 @@ class QueryBuilder<T = Record<string, unknown>> {
     return this;
   }
 
+  is(column: string, value: unknown): QueryBuilder<T> {
+    if (value === null) {
+      this.whereClauses.push(`${column} IS NULL`);
+      this.memoryFilters.push(row => row[column] === null || row[column] === undefined);
+    } else {
+      this.whereClauses.push(`${column} IS NOT NULL`);
+      this.memoryFilters.push(row => row[column] !== null && row[column] !== undefined);
+    }
+    return this;
+  }
+
   in(column: string, values: unknown[]): QueryBuilder<T> {
     const placeholders = values.map((_, i) => `$${this.whereParams.length + i + 1}`).join(', ');
     this.whereClauses.push(`${column} IN (${placeholders})`);
@@ -888,16 +899,18 @@ class UpdateBuilder<T = Record<string, unknown>> {
           updated_at: now,
         };
         store.set(id, updated);
-        updatedRecord = updated;
-        break;
+        // 如果需要返回数据，记录最后一条更新的记录
+        if (this.returnUpdated) {
+          updatedRecord = updated;
+        }
+        // 如果没有调用 single()，继续更新所有匹配的记录
+        // 注意：当前设计下，我们始终更新所有匹配记录
       }
     }
 
-    if (!updatedRecord) {
-      return { data: null, error: { message: 'No rows updated' } };
-    }
-
-    return { data: updatedRecord as T, error: null };
+    // 对于没有调用 single() 的批量更新，返回 null 数据表示成功
+    // 对于调用 single() 的单条更新，返回更新后的数据
+    return { data: updatedRecord as T | null, error: null };
   }
 
   async execute(): Promise<SingleQueryResultData<T>> {
@@ -1016,15 +1029,21 @@ class DeleteBuilder<T = Record<string, unknown>> {
 
   private executeMemoryDelete(): { data: Record<string, unknown> | null; error: { message: string } | null } {
     const store = getTableStore(this.table);
+    const toDelete: string[] = [];
 
+    // 先收集要删除的记录
     for (const [id, record] of store.entries()) {
       if (this.memoryFilters.every(filter => filter(record))) {
-        if (this.returnDeleted) {
+        toDelete.push(id);
+        if (this.returnDeleted && !this.deletedData) {
           this.deletedData = { ...record };
         }
-        store.delete(id);
-        break; // 只删除第一条匹配记录
       }
+    }
+
+    // 批量删除
+    for (const id of toDelete) {
+      store.delete(id);
     }
 
     return { data: this.deletedData, error: null };
