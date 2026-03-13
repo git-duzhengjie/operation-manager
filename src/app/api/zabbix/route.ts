@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
 
   const config = getZabbixConfig();
 
+  // debug 接口不需要检查配置
+  if (action === 'debug') {
+    return await getDebugInfo();
+  }
+
   // 检查是否配置了 Zabbix
   if (!config.enabled) {
     return NextResponse.json({
@@ -388,6 +393,53 @@ async function getVersion(client: ZabbixClient) {
     data: {
       version,
       zabbixUrl: client.getFrontendUrl(),
+    },
+  });
+}
+
+// 获取调试信息（用于排查配置问题）
+async function getDebugInfo() {
+  const config = getZabbixConfig();
+  
+  // 构建环境变量检测信息
+  const envVars = {
+    NEXT_PUBLIC_ZABBIX_URL: process.env.NEXT_PUBLIC_ZABBIX_URL ? '已设置' : '未设置',
+    ZABBIX_URL: process.env.ZABBIX_URL ? '已设置' : '未设置',
+    ZABBIX_API_URL: process.env.ZABBIX_API_URL ? '已设置' : '未设置',
+    ZABBIX_USER: process.env.ZABBIX_USER ? '已设置' : '未设置',
+    ZABBIX_PASSWORD: process.env.ZABBIX_PASSWORD ? '已设置' : '未设置',
+  };
+  
+  return NextResponse.json({
+    success: true,
+    data: {
+      enabled: config.enabled,
+      errors: config.errors,
+      envVars,
+      configStatus: {
+        url: config.url ? '已设置' : '未设置',
+        apiUrl: config.apiUrl ? '已设置' : '未设置',
+        user: config.user ? '已设置' : '未设置',
+        password: config.password ? '已设置' : '未设置',
+      },
+      // 显示 URL 预览（脱敏）
+      urlPreview: config.url ? `${config.url.substring(0, 50)}${config.url.length > 50 ? '...' : ''}` : null,
+      apiEndpoint: config.apiUrl ? `${config.apiUrl}/api_jsonrpc.php` : null,
+      // 配置指南
+      setupGuide: {
+        requiredVars: [
+          { name: 'NEXT_PUBLIC_ZABBIX_URL', example: 'http://192.168.1.100/zabbix', note: 'Zabbix 前端地址，不要包含 /api_jsonrpc.php' },
+          { name: 'ZABBIX_USER', example: 'Admin', note: 'Zabbix 登录用户名' },
+          { name: 'ZABBIX_PASSWORD', example: 'zabbix', note: 'Zabbix 登录密码' },
+        ],
+        optionalVars: [
+          { name: 'ZABBIX_API_URL', example: 'http://zabbix-internal/zabbix', note: '如果后端访问地址与前端不同，可单独设置' },
+          { name: 'ZABBIX_URL', example: 'http://192.168.1.100/zabbix', note: 'NEXT_PUBLIC_ZABBIX_URL 的备用变量名' },
+        ],
+      },
+      hint: config.enabled 
+        ? 'Zabbix 配置完整，可以正常使用'
+        : '请确保所有必需的环境变量都已正确设置',
     },
   });
 }
