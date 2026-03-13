@@ -182,6 +182,37 @@ export const serviceItems = pgTable(
   ]
 );
 
+// 告警表
+export const alerts = pgTable(
+  "alerts",
+  {
+    id: serial("id").primaryKey(),
+    alertId: varchar("alert_id", { length: 50 }).notNull(), // 外部告警ID
+    source: varchar("source", { length: 50 }).notNull(), // Zabbix, Prometheus, etc.
+    level: varchar("level", { length: 20 }).notNull(), // critical, warning, info
+    title: varchar("title", { length: 500 }).notNull(),
+    description: text("description"),
+    assetId: integer("asset_id"),
+    assetName: varchar("asset_name", { length: 100 }),
+    customerId: integer("customer_id"),
+    customerName: varchar("customer_name", { length: 100 }),
+    status: varchar("status", { length: 20 }).default('pending').notNull(), // pending, processing, resolved, ignored
+    ticketId: integer("ticket_id"),
+    ticketCode: varchar("ticket_code", { length: 50 }),
+    rawData: jsonb("raw_data"), // 原始告警数据
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("alerts_alert_id_idx").on(table.alertId),
+    index("alerts_level_idx").on(table.level),
+    index("alerts_status_idx").on(table.status),
+    index("alerts_source_idx").on(table.source),
+    index("alerts_asset_idx").on(table.assetId),
+    index("alerts_created_idx").on(table.createdAt),
+  ]
+);
+
 // TypeScript 类型
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
@@ -195,3 +226,5 @@ export type ServiceCatalog = typeof serviceCatalogs.$inferSelect;
 export type InsertServiceCatalog = typeof serviceCatalogs.$inferInsert;
 export type ServiceItem = typeof serviceItems.$inferSelect;
 export type InsertServiceItem = typeof serviceItems.$inferInsert;
+export type Alert = typeof alerts.$inferSelect;
+export type InsertAlert = typeof alerts.$inferInsert;

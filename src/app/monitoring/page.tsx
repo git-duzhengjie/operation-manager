@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -20,92 +21,163 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, AlertTriangle, AlertCircle, Info, CheckCircle, Link } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Search,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  CheckCircle,
+  Link,
+  Loader2,
+  ExternalLink,
+  Eye,
+  XCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
 
-// 模拟告警数据
-const mockAlerts = [
-  {
-    id: 'ALT001',
-    alertId: 'ZBX-2024-001234',
-    source: 'Zabbix',
-    level: 'critical',
-    title: '服务器磁盘使用率超过90%',
-    asset: '应用服务器-01',
-    customer: '市财政局',
-    status: 'processing',
-    ticketId: 'WO20240101001',
-    receivedAt: '2024-01-15 10:30:00',
-  },
-  {
-    id: 'ALT002',
-    alertId: 'ZBX-2024-001235',
-    source: 'Zabbix',
-    level: 'warning',
-    title: '数据库连接数接近上限',
-    asset: '数据库服务器-01',
-    customer: '市人社局',
-    status: 'pending',
-    ticketId: null,
-    receivedAt: '2024-01-15 11:20:00',
-  },
-  {
-    id: 'ALT003',
-    alertId: 'ZBX-2024-001236',
-    source: 'Prometheus',
-    level: 'info',
-    title: '应用响应时间变慢',
-    asset: '应用服务器-02',
-    customer: '市卫健委',
-    status: 'resolved',
-    ticketId: 'WO20240101002',
-    receivedAt: '2024-01-15 09:15:00',
-  },
-  {
-    id: 'ALT004',
-    alertId: 'ZBX-2024-001237',
-    source: 'Zabbix',
-    level: 'critical',
-    title: '服务进程异常退出',
-    asset: '应用服务器-03',
-    customer: '市公安局',
-    status: 'processing',
-    ticketId: 'WO20240101003',
-    receivedAt: '2024-01-15 08:45:00',
-  },
-];
+interface Alert {
+  id: string;
+  alertId: string;
+  source: string;
+  level: string;
+  levelLabel: string;
+  title: string;
+  description: string | null;
+  assetId: number | null;
+  assetName: string;
+  customerId: number | null;
+  customerName: string;
+  status: string;
+  statusLabel: string;
+  ticketId: number | null;
+  ticketCode: string | null;
+  rawData: Record<string, unknown> | null;
+  resolvedAt: string;
+  createdAt: string;
+}
 
-const levelMap: Record<string, { label: string; icon: any; color: string; bgColor: string }> = {
-  critical: { 
-    label: '严重', 
-    icon: AlertTriangle, 
-    color: 'text-red-600', 
-    bgColor: 'bg-red-100' 
-  },
-  warning: { 
-    label: '警告', 
-    icon: AlertCircle, 
-    color: 'text-orange-600', 
-    bgColor: 'bg-orange-100' 
-  },
-  info: { 
-    label: '信息', 
-    icon: Info, 
-    color: 'text-blue-600', 
-    bgColor: 'bg-blue-100' 
-  },
+interface Stats {
+  today: number;
+  critical: number;
+  pending: number;
+  resolved: number;
+}
+
+const levelConfig: Record<string, { icon: typeof AlertTriangle; color: string; bgColor: string }> = {
+  critical: { icon: AlertTriangle, color: 'text-red-600', bgColor: 'bg-red-100' },
+  warning: { icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  info: { icon: Info, color: 'text-blue-600', bgColor: 'bg-blue-100' },
 };
 
-const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { label: '待处理', variant: 'secondary' },
   processing: { label: '处理中', variant: 'default' },
   resolved: { label: '已解决', variant: 'outline' },
+  ignored: { label: '已忽略', variant: 'secondary' },
 };
 
 export default function MonitoringPage() {
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [stats, setStats] = useState<Stats>({ today: 0, critical: 0, pending: 0, resolved: 0 });
+  const [sources, setSources] = useState<string[]>([]);
+  const [levelOptions, setLevelOptions] = useState<{ value: string; label: string }[]>([]);
+  const [statusOptions, setStatusOptions] = useState<{ value: string; label: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 筛选状态
   const [searchKeyword, setSearchKeyword] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+
+  // 对话框状态
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // 获取告警列表
+  const fetchAlerts = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (levelFilter !== 'all') params.set('level', levelFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (sourceFilter !== 'all') params.set('source', sourceFilter);
+      if (searchKeyword) params.set('keyword', searchKeyword);
+
+      const response = await fetch(`/api/alerts?${params.toString()}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setAlerts(result.data.alerts);
+        setStats(result.data.stats);
+        setSources(result.data.sources);
+        setLevelOptions(result.data.levelOptions);
+        setStatusOptions(result.data.statusOptions);
+      }
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+      toast.error('获取失败', { description: '无法获取告警列表' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAlerts();
+  }, [levelFilter, statusFilter, sourceFilter, searchKeyword]);
+
+  // 查看告警详情
+  const handleViewDetail = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setDetailDialogOpen(true);
+  };
+
+  // 更新告警状态
+  const handleUpdateStatus = async (alertId: string, newStatus: string) => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/alerts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: alertId, status: newStatus }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('状态更新成功');
+        setStatusDialogOpen(false);
+        setUpdatingStatus(null);
+        fetchAlerts();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to update alert:', error);
+      toast.error('更新失败', { description: '无法更新告警状态' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 创建工单（模拟）
+  const handleCreateTicket = (alert: Alert) => {
+    toast.success('已跳转到工单创建页面', {
+      description: `告警: ${alert.title}`,
+    });
+  };
 
   return (
     <AppLayout>
@@ -123,7 +195,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">今日告警</p>
-                  <p className="text-2xl font-bold mt-1">156</p>
+                  <p className="text-2xl font-bold mt-1">{stats.today}</p>
                 </div>
                 <AlertTriangle className="w-8 h-8 text-red-600" />
               </div>
@@ -134,7 +206,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">严重告警</p>
-                  <p className="text-2xl font-bold mt-1">23</p>
+                  <p className="text-2xl font-bold mt-1">{stats.critical}</p>
                 </div>
                 <div className="p-2 bg-red-100 rounded-full">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -147,7 +219,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">待处理</p>
-                  <p className="text-2xl font-bold mt-1">45</p>
+                  <p className="text-2xl font-bold mt-1">{stats.pending}</p>
                 </div>
                 <AlertCircle className="w-8 h-8 text-orange-600" />
               </div>
@@ -158,7 +230,7 @@ export default function MonitoringPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">已解决</p>
-                  <p className="text-2xl font-bold mt-1">1,234</p>
+                  <p className="text-2xl font-bold mt-1">{stats.resolved}</p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
@@ -169,8 +241,8 @@ export default function MonitoringPage() {
         {/* 搜索和筛选 */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="搜索告警ID、标题、资产..."
@@ -180,101 +252,289 @@ export default function MonitoringPage() {
                 />
               </div>
               <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-32">
                   <SelectValue placeholder="告警级别" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部级别</SelectItem>
-                  <SelectItem value="critical">严重</SelectItem>
-                  <SelectItem value="warning">警告</SelectItem>
-                  <SelectItem value="info">信息</SelectItem>
+                  {levelOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-32">
                   <SelectValue placeholder="状态" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="pending">待处理</SelectItem>
-                  <SelectItem value="processing">处理中</SelectItem>
-                  <SelectItem value="resolved">已解决</SelectItem>
+                  {statusOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline">
-                <Filter className="w-4 h-4 mr-2" />
-                高级筛选
-              </Button>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="来源" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部来源</SelectItem>
+                  {sources.map((source) => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
         {/* 告警列表 */}
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>告警ID</TableHead>
-                <TableHead>级别</TableHead>
-                <TableHead>标题</TableHead>
-                <TableHead>来源</TableHead>
-                <TableHead>资产</TableHead>
-                <TableHead>客户</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>关联工单</TableHead>
-                <TableHead>接收时间</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockAlerts.map((alert) => {
-                const levelInfo = levelMap[alert.level];
-                const Icon = levelInfo.icon;
-                return (
-                  <TableRow key={alert.id}>
-                    <TableCell className="font-mono">{alert.alertId}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <div className={`p-1 rounded ${levelInfo.bgColor}`}>
-                          <Icon className={`w-4 h-4 ${levelInfo.color}`} />
+          {loading ? (
+            <CardContent className="p-8 text-center text-gray-500">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+              加载中...
+            </CardContent>
+          ) : alerts.length === 0 ? (
+            <CardContent className="p-8 text-center text-gray-500">
+              暂无告警数据
+            </CardContent>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>告警ID</TableHead>
+                  <TableHead>级别</TableHead>
+                  <TableHead>标题</TableHead>
+                  <TableHead>来源</TableHead>
+                  <TableHead>资产</TableHead>
+                  <TableHead>客户</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>关联工单</TableHead>
+                  <TableHead>接收时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {alerts.map((alert) => {
+                  const levelInfo = levelConfig[alert.level] || levelConfig.info;
+                  const Icon = levelInfo.icon;
+                  return (
+                    <TableRow key={alert.id}>
+                      <TableCell className="font-mono text-sm">{alert.alertId}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <div className={`p-1 rounded ${levelInfo.bgColor}`}>
+                            <Icon className={`w-4 h-4 ${levelInfo.color}`} />
+                          </div>
+                          <span className={levelInfo.color + ' font-medium'}>
+                            {alert.levelLabel}
+                          </span>
                         </div>
-                        <span className={levelInfo.color + ' font-medium'}>
-                          {levelInfo.label}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{alert.title}</TableCell>
-                    <TableCell>{alert.source}</TableCell>
-                    <TableCell>{alert.asset}</TableCell>
-                    <TableCell>{alert.customer}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusMap[alert.status].variant}>
-                        {statusMap[alert.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {alert.ticketId ? (
-                        <Button variant="link" size="sm" className="p-0 h-auto">
-                          <Link className="w-3 h-3 mr-1" />
-                          {alert.ticketId}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm">
-                          创建工单
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>{alert.receivedAt}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">详情</Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate" title={alert.title}>
+                        {alert.title}
+                      </TableCell>
+                      <TableCell>{alert.source}</TableCell>
+                      <TableCell>{alert.assetName}</TableCell>
+                      <TableCell>{alert.customerName}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusConfig[alert.status]?.variant || 'secondary'}>
+                          {alert.statusLabel}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {alert.ticketCode ? (
+                          <Button variant="link" size="sm" className="p-0 h-auto text-blue-600">
+                            <Link className="w-3 h-3 mr-1" />
+                            {alert.ticketCode}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateTicket(alert)}
+                          >
+                            创建工单
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">{alert.createdAt}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetail(alert)}
+                            title="查看详情"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {alert.status !== 'resolved' && alert.status !== 'ignored' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setUpdatingStatus(alert.id);
+                                setStatusDialogOpen(true);
+                              }}
+                              title="更新状态"
+                            >
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </Card>
       </div>
+
+      {/* 告警详情对话框 */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>告警详情</DialogTitle>
+          </DialogHeader>
+
+          {selectedAlert && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-500">告警ID</Label>
+                  <p className="font-mono">{selectedAlert.alertId}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">来源</Label>
+                  <p>{selectedAlert.source}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">级别</Label>
+                  <div className="flex items-center space-x-2">
+                    <div className={`p-1 rounded ${levelConfig[selectedAlert.level]?.bgColor}`}>
+                      {(() => {
+                        const Icon = levelConfig[selectedAlert.level]?.icon || Info;
+                        return <Icon className={`w-4 h-4 ${levelConfig[selectedAlert.level]?.color}`} />;
+                      })()}
+                    </div>
+                    <span className={levelConfig[selectedAlert.level]?.color + ' font-medium'}>
+                      {selectedAlert.levelLabel}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-gray-500">状态</Label>
+                  <Badge variant={statusConfig[selectedAlert.status]?.variant || 'secondary'}>
+                    {selectedAlert.statusLabel}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-gray-500">资产</Label>
+                  <p>{selectedAlert.assetName}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">客户</Label>
+                  <p>{selectedAlert.customerName}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-gray-500">标题</Label>
+                <p className="font-medium">{selectedAlert.title}</p>
+              </div>
+
+              <div>
+                <Label className="text-gray-500">描述</Label>
+                <p className="text-gray-700">{selectedAlert.description || '-'}</p>
+              </div>
+
+              {selectedAlert.ticketCode && (
+                <div>
+                  <Label className="text-gray-500">关联工单</Label>
+                  <Button variant="link" className="p-0 h-auto ml-2">
+                    {selectedAlert.ticketCode}
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-500">接收时间</Label>
+                  <p className="text-sm">{selectedAlert.createdAt}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-500">解决时间</Label>
+                  <p className="text-sm">{selectedAlert.resolvedAt}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 更新状态对话框 */}
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>更新告警状态</DialogTitle>
+          </DialogHeader>
+
+          <p className="py-4">请选择新的告警状态：</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+              onClick={() => updatingStatus && handleUpdateStatus(updatingStatus, 'processing')}
+              disabled={saving}
+            >
+              <AlertCircle className="w-6 h-6 text-blue-600" />
+              <span>处理中</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2"
+              onClick={() => updatingStatus && handleUpdateStatus(updatingStatus, 'resolved')}
+              disabled={saving}
+            >
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              <span>已解决</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 col-span-2"
+              onClick={() => updatingStatus && handleUpdateStatus(updatingStatus, 'ignored')}
+              disabled={saving}
+            >
+              <XCircle className="w-6 h-6 text-gray-600" />
+              <span>忽略</span>
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
+              取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
