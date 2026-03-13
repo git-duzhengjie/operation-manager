@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/app-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,12 +29,14 @@ import { toast } from 'sonner';
 import { useUser } from '@/contexts/user-context';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { 
     userInfo, 
     notificationSettings, 
     updateUserInfo, 
     updateNotificationSettings, 
     updateAvatar,
+    logout,
     isLoading 
   } = useUser();
   
@@ -123,7 +126,9 @@ export default function SettingsPage() {
   };
 
   // 修改密码
-  const handleChangePassword = () => {
+  const [changingPassword, setChangingPassword] = useState(false);
+  
+  const handleChangePassword = async () => {
     if (!passwordForm.currentPassword) {
       toast.error('请输入当前密码');
       return;
@@ -141,9 +146,38 @@ export default function SettingsPage() {
       return;
     }
 
-    // 模拟密码修改
-    toast.success('密码修改成功，请重新登录');
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setChangingPassword(true);
+    try {
+      const response = await fetch('/api/user/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        toast.error(result.error || '密码修改失败');
+        return;
+      }
+
+      toast.success('密码修改成功，请重新登录');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      
+      // 退出登录并跳转到登录页面
+      setTimeout(() => {
+        logout();
+        router.push('/login');
+      }, 1500);
+    } catch (error) {
+      console.error('修改密码失败:', error);
+      toast.error('密码修改失败，请稍后重试');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   // 保存通知偏好
@@ -351,7 +385,8 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex justify-end">
-                    <Button onClick={handleChangePassword}>
+                    <Button onClick={handleChangePassword} disabled={changingPassword}>
+                      {changingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       <Lock className="w-4 h-4 mr-2" />
                       修改密码
                     </Button>
