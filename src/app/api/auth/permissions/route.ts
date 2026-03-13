@@ -4,6 +4,7 @@ import { getDbClient } from '@/storage/database/supabase-client';
 // 中文权限名称到英文代码的映射
 const PERMISSION_NAME_TO_CODE: Record<string, string> = {
   // 工单权限
+  '查看工单': 'ticket_view',
   '查看工单列表': 'ticket_view',
   '创建工单': 'ticket_create',
   '编辑工单': 'ticket_edit',
@@ -24,7 +25,7 @@ const PERMISSION_NAME_TO_CODE: Record<string, string> = {
   '删除文章': 'knowledge_delete',
   
   // 监控权限
-  '查看告警': 'monitor_view',
+  '查看监控': 'monitor_view',
   '处理告警': 'alert_handle',
   '配置监控': 'monitor_config',
   
@@ -35,12 +36,14 @@ const PERMISSION_NAME_TO_CODE: Record<string, string> = {
   '删除用户': 'user_delete',
   
   // 系统权限
+  '系统配置': 'system_config',
   '查看设置': 'system_config',
   '修改设置': 'system_config',
   '查看日志': 'log_view',
   
   // 角色权限
   '查看角色': 'role_view',
+  '编辑角色': 'role_edit',
   '管理角色': 'role_edit',
 };
 
