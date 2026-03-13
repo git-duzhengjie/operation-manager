@@ -213,6 +213,28 @@ export const alerts = pgTable(
   ]
 );
 
+// 系统日志表
+export const systemLogs = pgTable(
+  "system_logs",
+  {
+    id: serial("id").primaryKey(),
+    user: varchar("user", { length: 100 }).notNull(),
+    action: varchar("action", { length: 100 }).notNull(),
+    resource: varchar("resource", { length: 100 }).notNull(),
+    resourceId: varchar("resource_id", { length: 100 }),
+    ip: varchar("ip", { length: 50 }),
+    status: varchar("status", { length: 20 }).notNull(), // success, failed
+    details: jsonb("details"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("system_logs_user_idx").on(table.user),
+    index("system_logs_action_idx").on(table.action),
+    index("system_logs_status_idx").on(table.status),
+    index("system_logs_created_idx").on(table.createdAt),
+  ]
+);
+
 // TypeScript 类型
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
@@ -228,3 +250,5 @@ export type ServiceItem = typeof serviceItems.$inferSelect;
 export type InsertServiceItem = typeof serviceItems.$inferInsert;
 export type Alert = typeof alerts.$inferSelect;
 export type InsertAlert = typeof alerts.$inferInsert;
+export type SystemLog = typeof systemLogs.$inferSelect;
+export type InsertSystemLog = typeof systemLogs.$inferInsert;

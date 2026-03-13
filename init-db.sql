@@ -280,6 +280,27 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 
 -- ===========================================
+-- 系统日志表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS system_logs (
+    id SERIAL PRIMARY KEY,
+    "user" VARCHAR(100) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource VARCHAR(100) NOT NULL,
+    resource_id VARCHAR(100),
+    ip VARCHAR(50),
+    status VARCHAR(20) NOT NULL,
+    details JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS system_logs_user_idx ON system_logs("user");
+CREATE INDEX IF NOT EXISTS system_logs_action_idx ON system_logs(action);
+CREATE INDEX IF NOT EXISTS system_logs_status_idx ON system_logs(status);
+CREATE INDEX IF NOT EXISTS system_logs_created_idx ON system_logs(created_at);
+
+-- ===========================================
 -- 通知表
 -- ===========================================
 CREATE TABLE IF NOT EXISTS notifications (
@@ -582,6 +603,27 @@ INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip
 (1, '创建资产', 'asset', 'AST-001', '{"name": "应用服务器-01"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '1 day'),
 (1, '创建用户', 'user', '2', '{"username": "zhangsan"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '2 days'),
 (1, '修改系统配置', 'system', 'notification', '{"key": "email_enabled", "value": true}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '3 days')
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认系统日志
+-- ===========================================
+INSERT INTO system_logs ("user", action, resource, resource_id, ip, status, details, created_at) VALUES
+('admin', '用户登录', '用户管理', NULL, '192.168.1.100', 'success', NULL, NOW() - INTERVAL '1 hour'),
+('zhangsan', '创建工单', '工单管理', 'WO20240115001', '192.168.1.101', 'success', NULL, NOW() - INTERVAL '2 hours'),
+('lisi', '导出数据', '资产管理', NULL, '192.168.1.102', 'success', NULL, NOW() - INTERVAL '3 hours'),
+('admin', '修改权限', '角色管理', '3', '192.168.1.100', 'success', NULL, NOW() - INTERVAL '4 hours'),
+('zhangsan', '登录失败', '用户管理', NULL, '192.168.1.101', 'failed', '{"reason": "密码错误"}'::jsonb, NOW() - INTERVAL '5 hours'),
+('admin', '创建用户', '用户管理', '4', '192.168.1.100', 'success', NULL, NOW() - INTERVAL '6 hours'),
+('lisi', '更新资产', '资产管理', 'AST-001', '192.168.1.102', 'success', NULL, NOW() - INTERVAL '7 hours'),
+('zhangsan', '查看工单', '工单管理', 'WO20240115002', '192.168.1.101', 'success', NULL, NOW() - INTERVAL '8 hours'),
+('admin', '系统配置', '系统管理', NULL, '192.168.1.100', 'success', NULL, NOW() - INTERVAL '9 hours'),
+('lisi', '删除工单', '工单管理', 'WO20240115003', '192.168.1.102', 'success', NULL, NOW() - INTERVAL '10 hours'),
+('zhangsan', '用户登出', '用户管理', NULL, '192.168.1.101', 'success', NULL, NOW() - INTERVAL '11 hours'),
+('admin', '导出报告', '报表管理', NULL, '192.168.1.100', 'success', NULL, NOW() - INTERVAL '12 hours'),
+('lisi', '导入资产', '资产管理', NULL, '192.168.1.102', 'failed', '{"reason": "文件格式错误"}'::jsonb, NOW() - INTERVAL '13 hours'),
+('admin', '创建知识库文章', '知识库', '1', '192.168.1.100', 'success', NULL, NOW() - INTERVAL '14 hours'),
+('zhangsan', '处理工单', '工单管理', 'WO20240115001', '192.168.1.101', 'success', NULL, NOW() - INTERVAL '15 hours')
 ON CONFLICT DO NOTHING;
 
 -- 完成提示
