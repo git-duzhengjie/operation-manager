@@ -1,28 +1,9 @@
 # ===========================================
-# Stage 1: Dependencies
-# ===========================================
-FROM node:24-alpine AS deps
-
-# Install git (required by some packages)
-RUN apk add --no-cache git
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
-WORKDIR /app
-
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prefer-offline
-
-# ===========================================
-# Stage 2: Builder
+# Stage 1: Builder
 # ===========================================
 FROM node:24-alpine AS builder
 
-# Install bash (required by build scripts)
+# Install required system packages
 RUN apk add --no-cache bash git
 
 # Install pnpm
@@ -30,8 +11,13 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 WORKDIR /app
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files first for better caching
+COPY package.json pnpm-lock.yaml* ./
+
+# Install all dependencies (including devDependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy source files
 COPY . .
 
 # Set environment variables for build
@@ -42,7 +28,7 @@ ENV NODE_ENV=production
 RUN pnpm run build
 
 # ===========================================
-# Stage 3: Runner (Production)
+# Stage 2: Runner (Production)
 # ===========================================
 FROM node:24-alpine AS runner
 
