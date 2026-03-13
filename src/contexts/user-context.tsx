@@ -193,10 +193,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // 退出登录
   const logout = useCallback(() => {
-    // 清除 localStorage
+    // 清除所有 localStorage 中的登录相关信息
     localStorage.removeItem(USER_INFO_KEY);
     localStorage.removeItem(NOTIFICATION_SETTINGS_KEY);
     localStorage.removeItem('oms_is_logged_in');
+    localStorage.removeItem('oms_user_id');
+    localStorage.removeItem('oms_user_role');
     // 重置状态为默认值
     setUserInfo(defaultUserInfo);
     setNotificationSettings(defaultNotificationSettings);
