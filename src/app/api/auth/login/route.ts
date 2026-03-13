@@ -5,7 +5,8 @@ import { getSupabaseClient } from '@/storage/database/supabase-client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const username = (body.username || '').trim().toLowerCase();
+    const password = body.password || '';
 
     // 验证参数
     if (!username || !password) {
@@ -17,12 +18,15 @@ export async function POST(request: NextRequest) {
 
     const client = getSupabaseClient();
 
-    // 查询用户
-    const { data: user, error } = await client
+    // 查询用户（用户名不区分大小写）
+    const { data: users, error } = await client
       .from('users')
-      .select('id, username, email, phone, real_name, role, department, position, avatar, password, is_active')
-      .eq('username', username)
-      .single();
+      .select('id, username, email, phone, real_name, role, department, position, avatar, password, is_active');
+
+    // 在内存中查找匹配的用户（不区分大小写）
+    const user = users?.find((u: Record<string, unknown>) => 
+      String(u.username).toLowerCase() === username
+    );
 
     if (error || !user) {
       return NextResponse.json(
