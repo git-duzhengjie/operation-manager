@@ -326,6 +326,135 @@ function initializeDefaultData(): void {
     scheduledTasksStore.set(String(task.id), task as unknown as Record<string, unknown>);
   });
   
+  // 初始化默认资产
+  const defaultAssets = [
+    { id: 1, asset_code: 'AST-001', name: '应用服务器-01', type: 'server', brand: 'Dell', model: 'PowerEdge R740', serial_number: 'SN001', ip: '192.168.1.10', location: '机房A-机柜01-U1-U10', customer_id: 1, project_id: 1, status: 'normal', description: '财政局预算管理系统应用服务器', purchase_date: '2022-03-15', warranty_end_date: '2025-03-14', specifications: { cpu: 'Intel Xeon Gold 6248R', memory: '128GB', disk: '2TB SSD RAID' }, created_at: now, updated_at: now },
+    { id: 2, asset_code: 'AST-002', name: '数据库服务器-01', type: 'server', brand: 'Dell', model: 'PowerEdge R750', serial_number: 'SN002', ip: '192.168.1.11', location: '机房A-机柜01-U11-U20', customer_id: 1, project_id: 1, status: 'normal', description: '财政局预算管理系统数据库服务器', purchase_date: '2022-03-15', warranty_end_date: '2025-03-14', specifications: { cpu: 'Intel Xeon Platinum 8380', memory: '256GB', disk: '4TB SSD RAID 10' }, created_at: now, updated_at: now },
+    { id: 3, asset_code: 'AST-003', name: '核心交换机-01', type: 'network', brand: 'Huawei', model: 'CloudEngine S7706', serial_number: 'SN003', ip: '192.168.1.1', location: '机房A-网络机柜', customer_id: 1, project_id: null, status: 'normal', description: '核心网络交换机', purchase_date: '2021-06-20', warranty_end_date: '2024-06-19', specifications: { ports: '48x10GE+6x40GE', throughput: '1.44Tbps' }, created_at: now, updated_at: now },
+    { id: 4, asset_code: 'AST-004', name: '应用服务器-02', type: 'server', brand: 'Lenovo', model: 'ThinkSystem SR650', serial_number: 'SN004', ip: '192.168.1.20', location: '机房B-机柜02-U1-U10', customer_id: 2, project_id: 2, status: 'warning', description: '人社局人事管理系统应用服务器', purchase_date: '2023-01-10', warranty_end_date: '2026-01-09', specifications: { cpu: 'Intel Xeon Silver 4314', memory: '64GB', disk: '1TB SSD' }, created_at: now, updated_at: now },
+    { id: 5, asset_code: 'AST-005', name: '存储设备-01', type: 'storage', brand: 'NetApp', model: 'AFF A250', serial_number: 'SN005', ip: '192.168.1.30', location: '机房A-存储机柜', customer_id: 3, project_id: 3, status: 'normal', description: '卫健委医院信息系统存储', purchase_date: '2022-08-01', warranty_end_date: '2025-07-31', specifications: { capacity: '100TB', type: 'All-Flash Array' }, created_at: now, updated_at: now },
+    { id: 6, asset_code: 'AST-006', name: '防火墙-01', type: 'security', brand: 'Fortinet', model: 'FortiGate 600F', serial_number: 'SN006', ip: '192.168.1.254', location: '机房A-网络机柜', customer_id: null, project_id: null, status: 'normal', description: '核心边界防火墙', purchase_date: '2022-04-01', warranty_end_date: '2025-03-31', specifications: { throughput: '36Gbps', interfaces: '10x10GE SFP+' }, created_at: now, updated_at: now },
+    { id: 7, asset_code: 'AST-007', name: '应用服务器-03', type: 'server', brand: 'HP', model: 'ProLiant DL380 Gen10', serial_number: 'SN007', ip: '192.168.1.40', location: '机房C-机柜01-U1-U10', customer_id: 4, project_id: 4, status: 'normal', description: '教育学籍管理系统应用服务器', purchase_date: '2023-05-15', warranty_end_date: '2026-05-14', specifications: { cpu: 'Intel Xeon Gold 6330', memory: '128GB', disk: '1.6TB NVMe' }, created_at: now, updated_at: now },
+    { id: 8, asset_code: 'AST-008', name: '备份服务器-01', type: 'server', brand: 'Dell', model: 'PowerEdge R650xs', serial_number: 'SN008', ip: '192.168.1.50', location: '机房A-机柜02-U1-U10', customer_id: null, project_id: null, status: 'normal', description: '集中备份服务器', purchase_date: '2023-07-01', warranty_end_date: '2026-06-30', specifications: { cpu: 'Intel Xeon Silver 4410Y', memory: '64GB', disk: '48TB RAID 6' }, created_at: now, updated_at: now },
+  ];
+  
+  const assetsStore = getTableStore('assets');
+  defaultAssets.forEach(asset => {
+    assetsStore.set(String(asset.id), asset as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认工单
+  const defaultTickets = [
+    { id: 1, ticket_no: 'WO20240101001', title: '服务器磁盘空间不足告警', type: 'incident', status: 'processing', priority: 'high', customer_id: 1, customer_name: '市财政局', project_id: 1, project_name: '预算管理系统', asset_id: 1, reporter_id: 2, assignee_id: 2, assignee_name: '张工', description: '应用服务器-01磁盘空间使用率达到90%，需要及时处理', resolution: null, due_date: new Date(Date.now() + 86400000).toISOString(), resolved_at: null, closed_at: null, created_at: new Date(Date.now() - 86400000).toISOString(), updated_at: now },
+    { id: 2, ticket_no: 'WO20240101002', title: '数据库备份失败', type: 'incident', status: 'pending', priority: 'critical', customer_id: 1, customer_name: '市财政局', project_id: 1, project_name: '预算管理系统', asset_id: 2, reporter_id: 3, assignee_id: null, assignee_name: null, description: '数据库服务器-01每日备份任务失败，错误代码：E001', resolution: null, due_date: new Date(Date.now() + 43200000).toISOString(), resolved_at: null, closed_at: null, created_at: now, updated_at: now },
+    { id: 3, ticket_no: 'WO20240101003', title: '网络设备配置变更申请', type: 'change', status: 'resolved', priority: 'medium', customer_id: 1, customer_name: '市财政局', project_id: null, project_name: null, asset_id: 3, reporter_id: 2, assignee_id: 2, assignee_name: '张工', description: '核心交换机需要新增VLAN配置', resolution: '已完成VLAN配置，测试通过', due_date: new Date(Date.now() - 172800000).toISOString(), resolved_at: new Date(Date.now() - 86400000).toISOString(), closed_at: now, created_at: new Date(Date.now() - 259200000).toISOString(), updated_at: now },
+    { id: 4, ticket_no: 'WO20240101004', title: '人事系统登录缓慢', type: 'incident', status: 'processing', priority: 'medium', customer_id: 2, customer_name: '市人社局', project_id: 2, project_name: '人事管理系统', asset_id: 4, reporter_id: 4, assignee_id: 2, assignee_name: '张工', description: '用户反馈人事管理系统登录响应时间超过10秒', resolution: null, due_date: new Date(Date.now() + 172800000).toISOString(), resolved_at: null, closed_at: null, created_at: new Date(Date.now() - 172800000).toISOString(), updated_at: now },
+    { id: 5, ticket_no: 'WO20240101005', title: '新系统上线支持申请', type: 'request', status: 'pending', priority: 'low', customer_id: 5, customer_name: '市住建局', project_id: 5, project_name: '房产管理系统', asset_id: null, reporter_id: 5, assignee_id: null, assignee_name: null, description: '房产管理系统即将上线，需要运维支持', resolution: null, due_date: new Date(Date.now() + 604800000).toISOString(), resolved_at: null, closed_at: null, created_at: now, updated_at: now },
+  ];
+  
+  const ticketsStore = getTableStore('tickets');
+  defaultTickets.forEach(ticket => {
+    ticketsStore.set(String(ticket.id), ticket as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认知识库文章
+  const defaultArticles = [
+    { id: 1, title: '服务器安全加固指南', content: '# 服务器安全加固指南\n\n## 1. 操作系统安全\n\n### 1.1 账户安全\n- 禁用不必要的默认账户\n- 设置强密码策略\n- 配置账户锁定策略\n\n### 1.2 服务安全\n- 关闭不必要的服务\n- 配置防火墙规则\n- 定期更新补丁\n\n## 2. 网络安全\n\n### 2.1 防火墙配置\n- 只开放必要端口\n- 配置访问控制列表\n- 启用日志审计\n\n### 2.2 入侵检测\n- 部署IDS系统\n- 配置告警规则\n- 定期检查日志', type: 'article', category: '安全管理', tags: ['安全', '服务器', '加固'], author_id: 1, status: 'published', view_count: 156, is_public: true, published_at: new Date(Date.now() - 2592000000).toISOString(), created_at: new Date(Date.now() - 2592000000).toISOString(), updated_at: now },
+    { id: 2, title: '常见网络问题解决方案', content: '# 常见网络问题解决方案\n\n## 1. 网络连接问题\n\n### 1.1 无法访问网络\n1. 检查网线连接\n2. 检查IP配置\n3. 检查DNS设置\n4. 检查防火墙规则\n\n### 1.2 网络速度慢\n1. 检查带宽使用\n2. 检查网络设备负载\n3. 排查广播风暴\n4. 检查链路质量\n\n## 2. DNS问题\n\n### 2.1 DNS解析失败\n1. 检查DNS服务器状态\n2. 清除DNS缓存\n3. 检查DNS配置', type: 'article', category: '网络管理', tags: ['网络', '故障排查'], author_id: 2, status: 'published', view_count: 234, is_public: true, published_at: new Date(Date.now() - 1728000000).toISOString(), created_at: new Date(Date.now() - 1728000000).toISOString(), updated_at: now },
+    { id: 3, title: '系统监控配置手册', content: '# 系统监控配置手册\n\n## 1. CPU监控\n\n### 1.1 监控指标\n- CPU使用率\n- CPU负载\n- CPU上下文切换\n\n### 1.2 告警阈值\n- 警告：70%\n- 严重：85%\n- 紧急：95%\n\n## 2. 内存监控\n\n### 2.1 监控指标\n- 内存使用率\n- 交换分区使用\n- 缓存使用\n\n## 3. 磁盘监控\n\n### 3.1 监控指标\n- 磁盘使用率\n- 磁盘IO\n- 磁盘队列', type: 'article', category: '监控管理', tags: ['监控', '配置'], author_id: 1, status: 'published', view_count: 189, is_public: true, published_at: new Date(Date.now() - 1296000000).toISOString(), created_at: new Date(Date.now() - 1296000000).toISOString(), updated_at: now },
+    { id: 4, title: '数据库备份恢复操作指南', content: '# 数据库备份恢复操作指南\n\n## 1. 备份策略\n\n### 1.1 全量备份\n- 每周日凌晨2点执行\n- 保留周期：30天\n\n### 1.2 增量备份\n- 每日凌晨2点执行\n- 保留周期：7天\n\n## 2. 恢复操作\n\n### 2.1 全量恢复\n```bash\npg_restore -d dbname backup_file\n```\n\n### 2.2 时间点恢复\n需要配合WAL日志进行恢复', type: 'article', category: '数据库管理', tags: ['数据库', '备份', '恢复'], author_id: 2, status: 'published', view_count: 98, is_public: true, published_at: new Date(Date.now() - 864000000).toISOString(), created_at: new Date(Date.now() - 864000000).toISOString(), updated_at: now },
+    { id: 5, title: 'Nginx性能优化实践', content: '# Nginx性能优化实践\n\n## 1. 基础优化\n\n### 1.1 worker进程配置\n```nginx\nworker_processes auto;\nworker_connections 4096;\n```\n\n### 1.2 连接优化\n```nginx\nkeepalive_timeout 65;\nkeepalive_requests 100;\n```\n\n## 2. 缓存配置\n\n### 2.1 静态文件缓存\n```nginx\nlocation ~* \\.(jpg|jpeg|png|gif|ico|css|js)$ {\n    expires 30d;\n    add_header Cache-Control "public, immutable";\n}\n```\n\n## 3. 负载均衡\n\n### 3.1 upstream配置\n```nginx\nupstream backend {\n    least_conn;\n    server 192.168.1.10:8080;\n    server 192.168.1.11:8080;\n}\n```', type: 'article', category: '中间件管理', tags: ['Nginx', '性能优化'], author_id: 1, status: 'draft', view_count: 0, is_public: false, published_at: null, created_at: now, updated_at: now },
+  ];
+  
+  const articlesStore = getTableStore('knowledge_articles');
+  defaultArticles.forEach(article => {
+    articlesStore.set(String(article.id), article as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认服务目录
+  const defaultServiceCatalogs = [
+    { id: 1, name: '基础运维服务', description: '提供基础设施运维支持服务', icon: 'Server', sort_order: 1, is_active: true, created_at: now, updated_at: now },
+    { id: 2, name: '应用运维服务', description: '提供应用系统运维支持服务', icon: 'AppWindow', sort_order: 2, is_active: true, created_at: now, updated_at: now },
+    { id: 3, name: '安全运维服务', description: '提供安全运维支持服务', icon: 'Shield', sort_order: 3, is_active: true, created_at: now, updated_at: now },
+    { id: 4, name: '数据运维服务', description: '提供数据库及存储运维支持服务', icon: 'Database', sort_order: 4, is_active: true, created_at: now, updated_at: now },
+  ];
+  
+  const catalogsStore = getTableStore('service_catalogs');
+  defaultServiceCatalogs.forEach(catalog => {
+    catalogsStore.set(String(catalog.id), catalog as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认服务项目
+  const defaultServiceItems = [
+    { id: 1, catalog_id: 1, name: '服务器故障处理', description: '处理服务器硬件及系统故障', workflow_id: 1, form_template_id: 1, sla_time: 4, sort_order: 1, is_active: true, created_at: now, updated_at: now },
+    { id: 2, catalog_id: 1, name: '网络故障处理', description: '处理网络设备及连接故障', workflow_id: 1, form_template_id: 1, sla_time: 2, sort_order: 2, is_active: true, created_at: now, updated_at: now },
+    { id: 3, catalog_id: 2, name: '应用问题处理', description: '处理应用系统运行问题', workflow_id: 1, form_template_id: 2, sla_time: 8, sort_order: 1, is_active: true, created_at: now, updated_at: now },
+    { id: 4, catalog_id: 2, name: '系统变更申请', description: '应用系统配置变更申请', workflow_id: 2, form_template_id: 3, sla_time: 24, sort_order: 2, is_active: true, created_at: now, updated_at: now },
+    { id: 5, catalog_id: 3, name: '安全事件处理', description: '处理安全告警和安全事件', workflow_id: 3, form_template_id: 1, sla_time: 1, sort_order: 1, is_active: true, created_at: now, updated_at: now },
+    { id: 6, catalog_id: 4, name: '数据库问题处理', description: '处理数据库运行问题', workflow_id: 1, form_template_id: 1, sla_time: 4, sort_order: 1, is_active: true, created_at: now, updated_at: now },
+    { id: 7, catalog_id: 4, name: '数据恢复申请', description: '申请数据备份恢复服务', workflow_id: 4, form_template_id: 4, sla_time: 8, sort_order: 2, is_active: true, created_at: now, updated_at: now },
+  ];
+  
+  const serviceItemsStore = getTableStore('service_items');
+  defaultServiceItems.forEach(item => {
+    serviceItemsStore.set(String(item.id), item as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认工作流
+  const defaultWorkflows = [
+    { id: 1, name: '故障处理流程', type: 'incident', catalog_id: 1, catalog_name: '基础运维服务', description: '标准故障处理流程', steps: [{ name: '提交', 'assignee': 'reporter' }, { name: '分派', 'assignee': 'dispatcher' }, { name: '处理', 'assignee': 'handler' }, { name: '确认', 'assignee': 'reporter' }, { name: '关闭', 'assignee': 'handler' }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 2, name: '变更审批流程', type: 'change', catalog_id: 2, catalog_name: '应用运维服务', description: '标准变更审批流程', steps: [{ name: '提交', 'assignee': 'reporter' }, { name: '初审', 'assignee': 'reviewer' }, { name: '审批', 'assignee': 'approver' }, { name: '实施', 'assignee': 'handler' }, { name: '验收', 'assignee': 'reporter' }, { name: '关闭', 'assignee': 'handler' }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 3, name: '安全事件处理流程', type: 'security', catalog_id: 3, catalog_name: '安全运维服务', description: '安全事件处理流程', steps: [{ name: '发现', 'assignee': 'system' }, { name: '确认', 'assignee': 'security' }, { name: '处置', 'assignee': 'security' }, { name: '复盘', 'assignee': 'security' }, { name: '关闭', 'assignee': 'security' }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 4, name: '数据恢复流程', type: 'recovery', catalog_id: 4, catalog_name: '数据运维服务', description: '数据恢复申请处理流程', steps: [{ name: '申请', 'assignee': 'reporter' }, { name: '审批', 'assignee': 'approver' }, { name: '执行', 'assignee': 'dba' }, { name: '验证', 'assignee': 'reporter' }, { name: '关闭', 'assignee': 'dba' }], is_active: true, version: 1, created_at: now, updated_at: now },
+  ];
+  
+  const workflowsStore = getTableStore('workflows');
+  defaultWorkflows.forEach(workflow => {
+    workflowsStore.set(String(workflow.id), workflow as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认表单模板
+  const defaultFormTemplates = [
+    { id: 1, name: '故障报告表单', catalog_id: 1, catalog_name: '基础运维服务', description: '用于报告系统故障的表单', fields: [{ name: 'title', label: '故障标题', type: 'text', required: true }, { name: 'description', label: '故障描述', type: 'textarea', required: true }, { name: 'priority', label: '优先级', type: 'select', options: ['low', 'medium', 'high', 'critical'], required: true }, { name: 'asset_id', label: '相关资产', type: 'select', required: false }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 2, name: '应用问题报告表单', catalog_id: 2, catalog_name: '应用运维服务', description: '用于报告应用系统问题的表单', fields: [{ name: 'title', label: '问题标题', type: 'text', required: true }, { name: 'description', label: '问题描述', type: 'textarea', required: true }, { name: 'priority', label: '优先级', type: 'select', options: ['low', 'medium', 'high', 'critical'], required: true }, { name: 'impact', label: '影响范围', type: 'select', options: ['个人', '部门', '全局'], required: true }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 3, name: '变更申请表单', catalog_id: 2, catalog_name: '应用运维服务', description: '用于提交变更申请的表单', fields: [{ name: 'title', label: '变更标题', type: 'text', required: true }, { name: 'reason', label: '变更原因', type: 'textarea', required: true }, { name: 'plan', label: '变更方案', type: 'textarea', required: true }, { name: 'risk', label: '风险评估', type: 'textarea', required: true }, { name: 'rollback', label: '回滚方案', type: 'textarea', required: true }], is_active: true, version: 1, created_at: now, updated_at: now },
+    { id: 4, name: '数据恢复申请表单', catalog_id: 4, catalog_name: '数据运维服务', description: '用于申请数据恢复的表单', fields: [{ name: 'database', label: '数据库名称', type: 'text', required: true }, { name: 'restore_time', label: '恢复时间点', type: 'datetime', required: true }, { name: 'reason', label: '恢复原因', type: 'textarea', required: true }, { name: 'approval', label: '审批人', type: 'text', required: true }], is_active: true, version: 1, created_at: now, updated_at: now },
+  ];
+  
+  const formTemplatesStore = getTableStore('form_templates');
+  defaultFormTemplates.forEach(template => {
+    formTemplatesStore.set(String(template.id), template as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认告警
+  const defaultAlerts = [
+    { id: 1, alert_id: 'ALT001', source: 'Zabbix', level: 'warning', title: 'CPU使用率过高', description: '服务器AST001 CPU使用率超过80%，当前值：85%', asset_id: 1, asset_name: '应用服务器-01', customer_id: 1, customer_name: '市财政局', status: 'pending', ticket_id: null, ticket_code: null, raw_data: { cpu_usage: 85, threshold: 80 }, resolved_at: null, created_at: new Date(Date.now() - 3600000).toISOString(), updated_at: now },
+    { id: 2, alert_id: 'ALT002', source: 'Zabbix', level: 'critical', title: '磁盘空间不足', description: '服务器AST001 磁盘空间不足，剩余空间：5%', asset_id: 1, asset_name: '应用服务器-01', customer_id: 1, customer_name: '市财政局', status: 'processing', ticket_id: 1, ticket_code: 'WO20240101001', raw_data: { disk_usage: 95, free_space: '50GB' }, resolved_at: null, created_at: new Date(Date.now() - 7200000).toISOString(), updated_at: now },
+    { id: 3, alert_id: 'ALT003', source: 'Zabbix', level: 'warning', title: '内存使用率过高', description: '服务器AST002 内存使用率超过85%，当前值：90%', asset_id: 4, asset_name: '应用服务器-02', customer_id: 2, customer_name: '市人社局', status: 'pending', ticket_id: null, ticket_code: null, raw_data: { memory_usage: 90, threshold: 85 }, resolved_at: null, created_at: new Date(Date.now() - 1800000).toISOString(), updated_at: now },
+    { id: 4, alert_id: 'ALT004', source: 'Zabbix', level: 'info', title: '服务端口异常', description: '检测到异常端口扫描活动', asset_id: 6, asset_name: '防火墙-01', customer_id: null, customer_name: null, status: 'resolved', ticket_id: null, ticket_code: null, raw_data: { source_ip: '192.168.100.50', ports: [22, 3389, 445] }, resolved_at: new Date(Date.now() - 86400000).toISOString(), created_at: new Date(Date.now() - 172800000).toISOString(), updated_at: now },
+    { id: 5, alert_id: 'ALT005', source: 'Zabbix', level: 'high', title: '数据库连接数过高', description: '数据库服务器-01 连接数超过阈值，当前：450', asset_id: 2, asset_name: '数据库服务器-01', customer_id: 1, customer_name: '市财政局', status: 'pending', ticket_id: null, ticket_code: null, raw_data: { connections: 450, threshold: 400 }, resolved_at: null, created_at: now, updated_at: now },
+  ];
+  
+  const alertsStore = getTableStore('alerts');
+  defaultAlerts.forEach(alert => {
+    alertsStore.set(String(alert.id), alert as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认审计日志
+  const defaultAuditLogs = [
+    { id: 1, user_id: 1, action: '用户登录', resource_type: 'auth', resource_id: '1', details: { method: 'password', ip: '192.168.1.100' }, ip_address: '192.168.1.100', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 2, user_id: 1, action: '创建工单', resource_type: 'ticket', resource_id: 'WO20240101001', details: { title: '服务器磁盘空间不足告警' }, ip_address: '192.168.1.100', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 7200000).toISOString() },
+    { id: 3, user_id: 2, action: '更新工单状态', resource_type: 'ticket', resource_id: 'WO20240101001', details: { from_status: 'pending', to_status: 'processing' }, ip_address: '192.168.1.101', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 5400000).toISOString() },
+    { id: 4, user_id: 1, action: '创建资产', resource_type: 'asset', resource_id: 'AST-001', details: { name: '应用服务器-01' }, ip_address: '192.168.1.100', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 86400000).toISOString() },
+    { id: 5, user_id: 1, action: '创建用户', resource_type: 'user', resource_id: '2', details: { username: 'zhangsan' }, ip_address: '192.168.1.100', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 172800000).toISOString() },
+    { id: 6, user_id: 1, action: '修改系统配置', resource_type: 'system', resource_id: 'notification', details: { key: 'email_enabled', value: true }, ip_address: '192.168.1.100', user_agent: 'Mozilla/5.0 Chrome/120.0', created_at: new Date(Date.now() - 259200000).toISOString() },
+  ];
+  
+  const auditLogsStore = getTableStore('audit_logs');
+  defaultAuditLogs.forEach(log => {
+    auditLogsStore.set(String(log.id), log as unknown as Record<string, unknown>);
+  });
+  
   // 更新 idCounter 为足够大的值，避免与初始数据冲突
   idCounter = 1000;
   

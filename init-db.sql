@@ -455,6 +455,108 @@ INSERT INTO notifications (title, message, type, category, is_read, related_id) 
 ('知识库审批通过', '您提交的文章《Nginx性能优化实践》已审核通过并发布。', 'success', 'knowledge', TRUE, NULL),
 ('服务目录更新', '服务目录「基础运维服务」已更新，新增了2个服务项目，请查看。', 'info', 'system', FALSE, NULL);
 
+-- ===========================================
+-- 插入默认资产数据
+-- ===========================================
+INSERT INTO assets (asset_code, name, type, brand, model, serial_number, ip, location, customer_id, project_id, status, description, purchase_date, warranty_end_date, specifications) VALUES
+('AST-001', '应用服务器-01', 'server', 'Dell', 'PowerEdge R740', 'SN001', '192.168.1.10', '机房A-机柜01-U1-U10', 1, 1, 'normal', '财政局预算管理系统应用服务器', '2022-03-15', '2025-03-14', '{"cpu": "Intel Xeon Gold 6248R", "memory": "128GB", "disk": "2TB SSD RAID"}'),
+('AST-002', '数据库服务器-01', 'server', 'Dell', 'PowerEdge R750', 'SN002', '192.168.1.11', '机房A-机柜01-U11-U20', 1, 1, 'normal', '财政局预算管理系统数据库服务器', '2022-03-15', '2025-03-14', '{"cpu": "Intel Xeon Platinum 8380", "memory": "256GB", "disk": "4TB SSD RAID 10"}'),
+('AST-003', '核心交换机-01', 'network', 'Huawei', 'CloudEngine S7706', 'SN003', '192.168.1.1', '机房A-网络机柜', 1, NULL, 'normal', '核心网络交换机', '2021-06-20', '2024-06-19', '{"ports": "48x10GE+6x40GE", "throughput": "1.44Tbps"}'),
+('AST-004', '应用服务器-02', 'server', 'Lenovo', 'ThinkSystem SR650', 'SN004', '192.168.1.20', '机房B-机柜02-U1-U10', 2, 2, 'warning', '人社局人事管理系统应用服务器', '2023-01-10', '2026-01-09', '{"cpu": "Intel Xeon Silver 4314", "memory": "64GB", "disk": "1TB SSD"}'),
+('AST-005', '存储设备-01', 'storage', 'NetApp', 'AFF A250', 'SN005', '192.168.1.30', '机房A-存储机柜', 3, 3, 'normal', '卫健委医院信息系统存储', '2022-08-01', '2025-07-31', '{"capacity": "100TB", "type": "All-Flash Array"}'),
+('AST-006', '防火墙-01', 'security', 'Fortinet', 'FortiGate 600F', 'SN006', '192.168.1.254', '机房A-网络机柜', NULL, NULL, 'normal', '核心边界防火墙', '2022-04-01', '2025-03-31', '{"throughput": "36Gbps", "interfaces": "10x10GE SFP+"}'),
+('AST-007', '应用服务器-03', 'server', 'HP', 'ProLiant DL380 Gen10', 'SN007', '192.168.1.40', '机房C-机柜01-U1-U10', 4, 4, 'normal', '教育学籍管理系统应用服务器', '2023-05-15', '2026-05-14', '{"cpu": "Intel Xeon Gold 6330", "memory": "128GB", "disk": "1.6TB NVMe"}'),
+('AST-008', '备份服务器-01', 'server', 'Dell', 'PowerEdge R650xs', 'SN008', '192.168.1.50', '机房A-机柜02-U1-U10', NULL, NULL, 'normal', '集中备份服务器', '2023-07-01', '2026-06-30', '{"cpu": "Intel Xeon Silver 4410Y", "memory": "64GB", "disk": "48TB RAID 6"}')
+ON CONFLICT (asset_code) DO NOTHING;
+
+-- ===========================================
+-- 插入默认工单数据
+-- ===========================================
+INSERT INTO tickets (ticket_no, title, type, status, priority, customer_id, customer_name, project_id, project_name, asset_id, reporter_id, assignee_id, assignee_name, description, due_date, created_at) VALUES
+('WO20240101001', '服务器磁盘空间不足告警', 'incident', 'processing', 'high', 1, '市财政局', 1, '预算管理系统', 1, 2, 2, '张工', '应用服务器-01磁盘空间使用率达到90%，需要及时处理', NOW() + INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+('WO20240101002', '数据库备份失败', 'incident', 'pending', 'critical', 1, '市财政局', 1, '预算管理系统', 2, 3, NULL, NULL, '数据库服务器-01每日备份任务失败，错误代码：E001', NOW() + INTERVAL '12 hours', NOW()),
+('WO20240101003', '网络设备配置变更申请', 'change', 'resolved', 'medium', 1, '市财政局', NULL, NULL, 3, 2, 2, '张工', '核心交换机需要新增VLAN配置', NOW() - INTERVAL '2 days', NOW() - INTERVAL '3 days'),
+('WO20240101004', '人事系统登录缓慢', 'incident', 'processing', 'medium', 2, '市人社局', 2, '人事管理系统', 4, 4, 2, '张工', '用户反馈人事管理系统登录响应时间超过10秒', NOW() + INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+('WO20240101005', '新系统上线支持申请', 'request', 'pending', 'low', 5, '市住建局', 5, '房产管理系统', NULL, 5, NULL, NULL, '房产管理系统即将上线，需要运维支持', NOW() + INTERVAL '7 days', NOW())
+ON CONFLICT (ticket_no) DO NOTHING;
+
+-- ===========================================
+-- 插入默认知识库文章
+-- ===========================================
+INSERT INTO knowledge_articles (title, content, type, category, tags, author_id, status, view_count, is_public, published_at, created_at) VALUES
+('服务器安全加固指南', '# 服务器安全加固指南\n\n## 1. 操作系统安全\n\n### 1.1 账户安全\n- 禁用不必要的默认账户\n- 设置强密码策略\n- 配置账户锁定策略\n\n### 1.2 服务安全\n- 关闭不必要的服务\n- 配置防火墙规则\n- 定期更新补丁', 'article', '安全管理', '{安全,服务器,加固}', 1, 'published', 156, TRUE, NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+('常见网络问题解决方案', '# 常见网络问题解决方案\n\n## 1. 网络连接问题\n\n### 1.1 无法访问网络\n1. 检查网线连接\n2. 检查IP配置\n3. 检查DNS设置\n4. 检查防火墙规则', 'article', '网络管理', '{网络,故障排查}', 2, 'published', 234, TRUE, NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+('系统监控配置手册', '# 系统监控配置手册\n\n## 1. CPU监控\n\n### 1.1 监控指标\n- CPU使用率\n- CPU负载\n- CPU上下文切换\n\n### 1.2 告警阈值\n- 警告：70%\n- 严重：85%\n- 紧急：95%', 'article', '监控管理', '{监控,配置}', 1, 'published', 189, TRUE, NOW() - INTERVAL '15 days', NOW() - INTERVAL '15 days'),
+('数据库备份恢复操作指南', '# 数据库备份恢复操作指南\n\n## 1. 备份策略\n\n### 1.1 全量备份\n- 每周日凌晨2点执行\n- 保留周期：30天\n\n### 1.2 增量备份\n- 每日凌晨2点执行\n- 保留周期：7天', 'article', '数据库管理', '{数据库,备份,恢复}', 2, 'published', 98, TRUE, NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days'),
+('Nginx性能优化实践', '# Nginx性能优化实践\n\n## 1. 基础优化\n\n### 1.1 worker进程配置\n```nginx\nworker_processes auto;\nworker_connections 4096;\n```', 'article', '中间件管理', '{Nginx,性能优化}', 1, 'draft', 0, FALSE, NULL, NOW())
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认服务目录
+-- ===========================================
+INSERT INTO service_catalogs (name, description, icon, sort_order, is_active) VALUES
+('基础运维服务', '提供基础设施运维支持服务', 'Server', 1, TRUE),
+('应用运维服务', '提供应用系统运维支持服务', 'AppWindow', 2, TRUE),
+('安全运维服务', '提供安全运维支持服务', 'Shield', 3, TRUE),
+('数据运维服务', '提供数据库及存储运维支持服务', 'Database', 4, TRUE)
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认服务项目
+-- ===========================================
+INSERT INTO service_items (catalog_id, name, description, workflow_id, form_template_id, sla_time, sort_order, is_active) VALUES
+(1, '服务器故障处理', '处理服务器硬件及系统故障', 1, 1, 4, 1, TRUE),
+(1, '网络故障处理', '处理网络设备及连接故障', 1, 1, 2, 2, TRUE),
+(2, '应用问题处理', '处理应用系统运行问题', 1, 2, 8, 1, TRUE),
+(2, '系统变更申请', '应用系统配置变更申请', 2, 3, 24, 2, TRUE),
+(3, '安全事件处理', '处理安全告警和安全事件', 3, 1, 1, 1, TRUE),
+(4, '数据库问题处理', '处理数据库运行问题', 1, 1, 4, 1, TRUE),
+(4, '数据恢复申请', '申请数据备份恢复服务', 4, 4, 8, 2, TRUE)
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认工作流
+-- ===========================================
+INSERT INTO workflows (name, type, catalog_id, catalog_name, description, steps, is_active, version) VALUES
+('故障处理流程', 'incident', 1, '基础运维服务', '标准故障处理流程', '[{"name": "提交", "assignee": "reporter"}, {"name": "分派", "assignee": "dispatcher"}, {"name": "处理", "assignee": "handler"}, {"name": "确认", "assignee": "reporter"}, {"name": "关闭", "assignee": "handler"}]'::jsonb, TRUE, 1),
+('变更审批流程', 'change', 2, '应用运维服务', '标准变更审批流程', '[{"name": "提交", "assignee": "reporter"}, {"name": "初审", "assignee": "reviewer"}, {"name": "审批", "assignee": "approver"}, {"name": "实施", "assignee": "handler"}, {"name": "验收", "assignee": "reporter"}, {"name": "关闭", "assignee": "handler"}]'::jsonb, TRUE, 1),
+('安全事件处理流程', 'security', 3, '安全运维服务', '安全事件处理流程', '[{"name": "发现", "assignee": "system"}, {"name": "确认", "assignee": "security"}, {"name": "处置", "assignee": "security"}, {"name": "复盘", "assignee": "security"}, {"name": "关闭", "assignee": "security"}]'::jsonb, TRUE, 1),
+('数据恢复流程', 'recovery', 4, '数据运维服务', '数据恢复申请处理流程', '[{"name": "申请", "assignee": "reporter"}, {"name": "审批", "assignee": "approver"}, {"name": "执行", "assignee": "dba"}, {"name": "验证", "assignee": "reporter"}, {"name": "关闭", "assignee": "dba"}]'::jsonb, TRUE, 1)
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认表单模板
+-- ===========================================
+INSERT INTO form_templates (name, catalog_id, catalog_name, description, fields, is_active, version) VALUES
+('故障报告表单', 1, '基础运维服务', '用于报告系统故障的表单', '[{"name": "title", "label": "故障标题", "type": "text", "required": true}, {"name": "description", "label": "故障描述", "type": "textarea", "required": true}, {"name": "priority", "label": "优先级", "type": "select", "options": ["low", "medium", "high", "critical"], "required": true}]'::jsonb, TRUE, 1),
+('应用问题报告表单', 2, '应用运维服务', '用于报告应用系统问题的表单', '[{"name": "title", "label": "问题标题", "type": "text", "required": true}, {"name": "description", "label": "问题描述", "type": "textarea", "required": true}, {"name": "priority", "label": "优先级", "type": "select", "options": ["low", "medium", "high", "critical"], "required": true}, {"name": "impact", "label": "影响范围", "type": "select", "options": ["个人", "部门", "全局"], "required": true}]'::jsonb, TRUE, 1),
+('变更申请表单', 2, '应用运维服务', '用于提交变更申请的表单', '[{"name": "title", "label": "变更标题", "type": "text", "required": true}, {"name": "reason", "label": "变更原因", "type": "textarea", "required": true}, {"name": "plan", "label": "变更方案", "type": "textarea", "required": true}, {"name": "risk", "label": "风险评估", "type": "textarea", "required": true}]'::jsonb, TRUE, 1),
+('数据恢复申请表单', 4, '数据运维服务', '用于申请数据恢复的表单', '[{"name": "database", "label": "数据库名称", "type": "text", "required": true}, {"name": "restore_time", "label": "恢复时间点", "type": "datetime", "required": true}, {"name": "reason", "label": "恢复原因", "type": "textarea", "required": true}]'::jsonb, TRUE, 1)
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认告警数据
+-- ===========================================
+INSERT INTO alerts (alert_id, source, level, title, description, asset_id, asset_name, customer_id, customer_name, status, raw_data, created_at) VALUES
+('ALT001', 'Zabbix', 'warning', 'CPU使用率过高', '服务器AST001 CPU使用率超过80%，当前值：85%', 1, '应用服务器-01', 1, '市财政局', 'pending', '{"cpu_usage": 85, "threshold": 80}'::jsonb, NOW() - INTERVAL '1 hour'),
+('ALT002', 'Zabbix', 'critical', '磁盘空间不足', '服务器AST001 磁盘空间不足，剩余空间：5%', 1, '应用服务器-01', 1, '市财政局', 'processing', '{"disk_usage": 95, "free_space": "50GB"}'::jsonb, NOW() - INTERVAL '2 hours'),
+('ALT003', 'Zabbix', 'warning', '内存使用率过高', '服务器AST002 内存使用率超过85%，当前值：90%', 4, '应用服务器-02', 2, '市人社局', 'pending', '{"memory_usage": 90, "threshold": 85}'::jsonb, NOW() - INTERVAL '30 minutes'),
+('ALT004', 'Zabbix', 'info', '服务端口异常', '检测到异常端口扫描活动', 6, '防火墙-01', NULL, NULL, 'resolved', '{"source_ip": "192.168.100.50", "ports": [22, 3389, 445]}'::jsonb, NOW() - INTERVAL '2 days'),
+('ALT005', 'Zabbix', 'high', '数据库连接数过高', '数据库服务器-01 连接数超过阈值，当前：450', 2, '数据库服务器-01', 1, '市财政局', 'pending', '{"connections": 450, "threshold": 400}'::jsonb, NOW())
+ON CONFLICT (alert_id) DO NOTHING;
+
+-- ===========================================
+-- 插入默认审计日志
+-- ===========================================
+INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip_address, user_agent, created_at) VALUES
+(1, '用户登录', 'auth', '1', '{"method": "password", "ip": "192.168.1.100"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '1 hour'),
+(1, '创建工单', 'ticket', 'WO20240101001', '{"title": "服务器磁盘空间不足告警"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '2 hours'),
+(2, '更新工单状态', 'ticket', 'WO20240101001', '{"from_status": "pending", "to_status": "processing"}'::jsonb, '192.168.1.101', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '90 minutes'),
+(1, '创建资产', 'asset', 'AST-001', '{"name": "应用服务器-01"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '1 day'),
+(1, '创建用户', 'user', '2', '{"username": "zhangsan"}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '2 days'),
+(1, '修改系统配置', 'system', 'notification', '{"key": "email_enabled", "value": true}'::jsonb, '192.168.1.100', 'Mozilla/5.0 Chrome/120.0', NOW() - INTERVAL '3 days')
+ON CONFLICT DO NOTHING;
+
 -- 完成提示
 DO $$
 BEGIN
