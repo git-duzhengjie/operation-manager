@@ -117,11 +117,6 @@ export default function RolesPage() {
 
   // 打开编辑对话框
   const handleEdit = async (role: Role) => {
-    if (role.isSystem) {
-      toast.error('系统角色不能编辑');
-      return;
-    }
-    
     setEditingRole(role);
     setFormData({
       name: role.name,
@@ -366,7 +361,6 @@ export default function RolesPage() {
                           size="sm"
                           onClick={() => handleEdit(role)}
                           title="编辑"
-                          disabled={role.isSystem}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -445,6 +439,7 @@ export default function RolesPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="请输入角色名称"
+                  disabled={editingRole?.isSystem}
                 />
               </div>
               <div className="space-y-2">
@@ -464,8 +459,15 @@ export default function RolesPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="请输入角色描述"
                 rows={2}
+                disabled={editingRole?.isSystem}
               />
             </div>
+            {editingRole?.isSystem && (
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg text-yellow-700 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                <span>系统角色的基本信息不可修改，仅可调整权限配置</span>
+              </div>
+            )}
 
             {/* 权限配置 */}
             <div className="space-y-4">
@@ -511,13 +513,6 @@ export default function RolesPage() {
                 })}
               </div>
             </div>
-
-            {editingRole?.isSystem && (
-              <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg text-yellow-700 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>系统角色的权限为预设配置，不可修改</span>
-              </div>
-            )}
           </div>
 
           <DialogFooter>

@@ -232,41 +232,43 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 检查是否为系统角色
+    // 检查角色是否存在
     const { data: existingRole } = await client
       .from('roles')
       .select('is_system, code')
       .eq('id', id)
       .single();
 
-    if (existingRole?.is_system) {
+    if (!existingRole) {
       return NextResponse.json(
-        { success: false, error: '系统角色不能修改' },
-        { status: 400 }
+        { success: false, error: '角色不存在' },
+        { status: 404 }
       );
     }
 
-    // 更新角色基本信息
-    const updateData: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
+    // 更新角色基本信息（系统角色不允许修改基本信息）
+    if (!existingRole.is_system) {
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
 
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
 
-    const { data: role, error } = await client
-      .from('roles')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+      if (Object.keys(updateData).length > 1) {
+        const { error } = await client
+          .from('roles')
+          .update(updateData)
+          .eq('id', id);
 
-    if (error) {
-      console.error('Supabase update error:', error);
-      throw error;
+        if (error) {
+          console.error('Supabase update error:', error);
+          throw error;
+        }
+      }
     }
 
-    // 更新权限
+    // 更新权限（系统角色也允许修改权限）
     if (permissionIds !== undefined) {
       // 删除旧权限
       await client
@@ -286,6 +288,13 @@ export async function PUT(request: NextRequest) {
           .insert(permRecords);
       }
     }
+
+    // 获取更新后的角色数据
+    const { data: role } = await client
+      .from('roles')
+      .select('*')
+      .eq('id', id)
+      .single();
 
     return NextResponse.json({
       success: true,
