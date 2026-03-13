@@ -11,8 +11,8 @@ const PERMISSION_NAME_TO_CODE: Record<string, string> = {
   '创建工单': 'ticket_create',
   '编辑工单': 'ticket_edit',
   '删除工单': 'ticket_delete',
-  '处理工单': 'ticket_assign',
-  '导出工单': 'ticket_close',
+  '处理工单': 'ticket_process',
+  '导出工单': 'ticket_export',
   
   // 资产权限
   '查看资产': 'asset_view',
@@ -131,7 +131,7 @@ export async function GET() {
 function getDefaultPermissions(role: string): string[] {
   const defaultPermissions: Record<string, string[]> = {
     admin: [
-      'ticket_view', 'ticket_create', 'ticket_edit', 'ticket_delete', 'ticket_assign', 'ticket_close',
+      'ticket_view', 'ticket_create', 'ticket_edit', 'ticket_delete', 'ticket_process', 'ticket_export',
       'asset_view', 'asset_create', 'asset_edit', 'asset_delete',
       'knowledge_view', 'knowledge_create', 'knowledge_edit', 'knowledge_delete',
       'monitor_view', 'monitor_config', 'alert_handle',
@@ -140,9 +140,9 @@ function getDefaultPermissions(role: string): string[] {
       'role_view', 'role_edit',
     ],
     internal: [
-      'ticket_view', 'ticket_create', 'ticket_edit', 'ticket_assign',
-      'asset_view', 'asset_create',
-      'knowledge_view', 'knowledge_create',
+      'ticket_view', 'ticket_create', 'ticket_edit', 'ticket_process', 'ticket_export',
+      'asset_view', 'asset_create', 'asset_edit',
+      'knowledge_view', 'knowledge_create', 'knowledge_edit',
       'monitor_view', 'alert_handle',
     ],
     external: [
