@@ -424,6 +424,18 @@ INSERT INTO customers (name, code, contact_person, contact_phone, status) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ===========================================
+-- 插入默认例行任务数据
+-- ===========================================
+INSERT INTO scheduled_tasks (name, description, cron_expression, task_type, task_config, status, last_run_at, next_run_at, created_by) VALUES
+('每日系统巡检', '每日自动执行系统巡检，检查服务器状态、资源使用情况等', '0 8 * * *', 'inspection', '{"checkItems": ["cpu", "memory", "disk", "network"]}'::jsonb, 'active', NOW() - INTERVAL '1 day', NOW() + INTERVAL '1 day', 1),
+('每周数据库备份检查', '每周自动检查数据库备份是否正常完成', '0 2 * * 0', 'backup', '{"target": "database", "retentionDays": 30}'::jsonb, 'active', NOW() - INTERVAL '7 day', NOW() + INTERVAL '7 day', 1),
+('每月安全漏洞扫描', '每月执行安全漏洞扫描，检测系统安全隐患', '0 3 1 * *', 'security', '{"scanType": "full", "report": true}'::jsonb, 'active', NOW() - INTERVAL '1 month', NOW() + INTERVAL '1 month', 1),
+('每周日志归档', '每周归档历史日志，释放存储空间', '0 4 * * 0', 'archive', '{"logTypes": ["system", "application", "audit"], "compress": true}'::jsonb, 'paused', NOW() - INTERVAL '7 day', NOW() + INTERVAL '7 day', 1),
+('每日告警统计报告', '每日生成告警统计报告并发送邮件', '0 9 * * *', 'report', '{"type": "alert_summary", "recipients": ["admin@example.com"]}'::jsonb, 'active', NOW() - INTERVAL '1 day', NOW() + INTERVAL '1 day', 1),
+('每周资产盘点检查', '每周检查资产状态，更新资产信息', '0 5 * * 1', 'asset', '{"checkExpired": true, "updateStatus": true}'::jsonb, 'active', NOW() - INTERVAL '7 day', NOW() + INTERVAL '7 day', 1)
+ON CONFLICT DO NOTHING;
+
+-- ===========================================
 -- 插入默认通知数据
 -- ===========================================
 INSERT INTO notifications (title, message, type, category, is_read, related_id) VALUES

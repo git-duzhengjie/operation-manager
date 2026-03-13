@@ -311,6 +311,21 @@ function initializeDefaultData(): void {
     projectsStore.set(String(project.id), project as unknown as Record<string, unknown>);
   });
   
+  // 初始化默认例行任务
+  const defaultScheduledTasks = [
+    { id: 1, name: '每日系统巡检', description: '每日自动执行系统巡检，检查服务器状态、资源使用情况等', cron_expression: '0 8 * * *', task_type: 'inspection', task_config: { checkItems: ['cpu', 'memory', 'disk', 'network'] }, status: 'active', last_run_at: new Date(Date.now() - 86400000).toISOString(), next_run_at: new Date(Date.now() + 86400000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+    { id: 2, name: '每周数据库备份检查', description: '每周自动检查数据库备份是否正常完成', cron_expression: '0 2 * * 0', task_type: 'backup', task_config: { target: 'database', retentionDays: 30 }, status: 'active', last_run_at: new Date(Date.now() - 604800000).toISOString(), next_run_at: new Date(Date.now() + 604800000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+    { id: 3, name: '每月安全漏洞扫描', description: '每月执行安全漏洞扫描，检测系统安全隐患', cron_expression: '0 3 1 * *', task_type: 'security', task_config: { scanType: 'full', report: true }, status: 'active', last_run_at: new Date(Date.now() - 2592000000).toISOString(), next_run_at: new Date(Date.now() + 2592000000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+    { id: 4, name: '每周日志归档', description: '每周归档历史日志，释放存储空间', cron_expression: '0 4 * * 0', task_type: 'archive', task_config: { logTypes: ['system', 'application', 'audit'], compress: true }, status: 'paused', last_run_at: new Date(Date.now() - 604800000).toISOString(), next_run_at: new Date(Date.now() + 604800000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+    { id: 5, name: '每日告警统计报告', description: '每日生成告警统计报告并发送邮件', cron_expression: '0 9 * * *', task_type: 'report', task_config: { type: 'alert_summary', recipients: ['admin@example.com'] }, status: 'active', last_run_at: new Date(Date.now() - 86400000).toISOString(), next_run_at: new Date(Date.now() + 86400000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+    { id: 6, name: '每周资产盘点检查', description: '每周检查资产状态，更新资产信息', cron_expression: '0 5 * * 1', task_type: 'asset', task_config: { checkExpired: true, updateStatus: true }, status: 'active', last_run_at: new Date(Date.now() - 604800000).toISOString(), next_run_at: new Date(Date.now() + 604800000).toISOString(), created_by: 1, created_at: now, updated_at: now },
+  ];
+  
+  const scheduledTasksStore = getTableStore('scheduled_tasks');
+  defaultScheduledTasks.forEach(task => {
+    scheduledTasksStore.set(String(task.id), task as unknown as Record<string, unknown>);
+  });
+  
   // 更新 idCounter 为足够大的值，避免与初始数据冲突
   idCounter = 1000;
   
