@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbClient } from '@/storage/database/supabase-client';
 
+// 生成唯一 ID
+let tagIdCounter = 10000;
+
 // GET - 获取标签列表及统计
 export async function GET(request: NextRequest) {
   try {
@@ -27,6 +30,15 @@ export async function GET(request: NextRequest) {
       .from('knowledge_tags')
       .select('*');
 
+    // 收集已使用的 ID
+    const usedIds = new Set<string>();
+    if (storedTags && !tagsError) {
+      (storedTags as Record<string, unknown>[]).forEach((tag: Record<string, unknown>) => {
+        const id = String(tag.id);
+        if (id) usedIds.add(id);
+      });
+    }
+
     // 统计标签出现次数（从文章中）
     const tagCountMap: Record<string, number> = {};
     
@@ -41,7 +53,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 合并独立标签（count 为 0 表示未被文章使用）
+    // 合并独立标签信息
     const storedTagsMap: Record<string, { id: string; description: string | null; color: string | null; sortOrder: number }> = {};
     
     if (storedTags && !tagsError) {
@@ -60,15 +72,28 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 转换为数组
-    let tags = Object.entries(tagCountMap).map(([name, count], index) => ({
-      id: storedTagsMap[name]?.id || String(index + 1),
-      name,
-      count,
-      description: storedTagsMap[name]?.description || null,
-      color: storedTagsMap[name]?.color || null,
-      sortOrder: storedTagsMap[name]?.sortOrder || 0,
-    }));
+    // 生成唯一 ID 的辅助函数
+    const generateUniqueId = (): string => {
+      let newId: string;
+      do {
+        newId = String(tagIdCounter++);
+      } while (usedIds.has(newId));
+      usedIds.add(newId);
+      return newId;
+    };
+
+    // 转换为数组，确保 ID 唯一
+    let tags = Object.entries(tagCountMap).map(([name, count]) => {
+      const storedInfo = storedTagsMap[name];
+      return {
+        id: storedInfo?.id || generateUniqueId(),
+        name,
+        count,
+        description: storedInfo?.description || null,
+        color: storedInfo?.color || null,
+        sortOrder: storedInfo?.sortOrder || 0,
+      };
+    });
 
     // 按关键词筛选
     if (keyword) {

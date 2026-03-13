@@ -114,7 +114,34 @@ async function testConnection(): Promise<boolean> {
     // 测试连接
     const client = await pool.connect();
     await client.query('SELECT 1');
+    
+    // 检查必要的表是否存在
+    const tableCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'knowledge_articles'
+      );
+    `);
+    
     client.release();
+    
+    if (!tableCheck.rows[0]?.exists) {
+      console.log('[DB] Required tables do not exist, falling back to memory store');
+      useMemoryStore = true;
+      connectionTested = true;
+      
+      // 关闭连接池
+      try {
+        await pool.end();
+      } catch {
+        // Ignore
+      }
+      pool = null;
+      
+      // 初始化默认数据
+      initializeDefaultData();
+      return false;
+    }
     
     console.log('[DB] Database connection successful');
     connectionTested = true;
@@ -142,6 +169,13 @@ async function testConnection(): Promise<boolean> {
 
 // 初始化默认数据（内存存储模式）
 function initializeDefaultData(): void {
+  // 检查是否已经有数据，避免重复初始化
+  const existingArticles = memoryStore.get('knowledge_articles');
+  if (existingArticles && existingArticles.size > 0) {
+    console.log('[DB] Memory store already has data, skipping initialization');
+    return;
+  }
+  
   const now = new Date().toISOString();
   
   // 初始化默认管理员用户
@@ -558,7 +592,12 @@ class QueryBuilder<T = Record<string, unknown>> {
   eq(column: string, value: unknown): QueryBuilder<T> {
     this.whereClauses.push(`${column} = $${this.whereParams.length + 1}`);
     this.whereParams.push(value);
-    this.memoryFilters.push(row => row[column] === value);
+    // 使用宽松比较，支持数字和字符串 id 的比较
+    this.memoryFilters.push(row => {
+      const rowVal = row[column];
+      if (rowVal == value) return true;
+      return String(rowVal) === String(value);
+    });
     return this;
   }
 
@@ -1009,7 +1048,12 @@ class UpdateBuilder<T = Record<string, unknown>> {
   eq(column: string, value: unknown): UpdateBuilder<T> {
     this.whereClauses.push(`${column} = $${this.whereParams.length + 1}`);
     this.whereParams.push(value);
-    this.memoryFilters.push(row => row[column] === value);
+    // 使用宽松比较，支持数字和字符串 id 的比较
+    this.memoryFilters.push(row => {
+      const rowVal = row[column];
+      if (rowVal == value) return true; // 使用 == 而非 ===
+      return String(rowVal) === String(value);
+    });
     return this;
   }
 
@@ -1061,17 +1105,14 @@ class UpdateBuilder<T = Record<string, unknown>> {
           updated_at: now,
         };
         store.set(id, updated);
+        
         // 如果需要返回数据，记录最后一条更新的记录
         if (this.returnUpdated) {
           updatedRecord = updated;
         }
-        // 如果没有调用 single()，继续更新所有匹配的记录
-        // 注意：当前设计下，我们始终更新所有匹配记录
       }
     }
 
-    // 对于没有调用 single() 的批量更新，返回 null 数据表示成功
-    // 对于调用 single() 的单条更新，返回更新后的数据
     return { data: updatedRecord as T | null, error: null };
   }
 
@@ -1147,7 +1188,12 @@ class DeleteBuilder<T = Record<string, unknown>> {
   eq(column: string, value: unknown): DeleteBuilder<T> {
     this.whereClauses.push(`${column} = $${this.whereParams.length + 1}`);
     this.whereParams.push(value);
-    this.memoryFilters.push(row => row[column] === value);
+    // 使用宽松比较，支持数字和字符串 id 的比较
+    this.memoryFilters.push(row => {
+      const rowVal = row[column];
+      if (rowVal == value) return true;
+      return String(rowVal) === String(value);
+    });
     return this;
   }
 
