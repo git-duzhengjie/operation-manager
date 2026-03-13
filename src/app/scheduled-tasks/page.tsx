@@ -104,6 +104,12 @@ export default function ScheduledTasksPage() {
   const [customCron, setCustomCron] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // 配置弹窗状态
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [configTask, setConfigTask] = useState<ScheduledTask | null>(null);
+  const [configJson, setConfigJson] = useState('{}');
+  const [savingConfig, setSavingConfig] = useState(false);
+
   // 获取任务列表
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -274,6 +280,50 @@ export default function ScheduledTasksPage() {
     } catch (error) {
       console.error('删除任务失败:', error);
       alert('删除失败');
+    }
+  };
+
+  // 打开配置弹窗
+  const handleConfig = (task: ScheduledTask) => {
+    setConfigTask(task);
+    setConfigJson(JSON.stringify(task.task_config || {}, null, 2));
+    setConfigDialogOpen(true);
+  };
+
+  // 保存配置
+  const handleSaveConfig = async () => {
+    if (!configTask) return;
+
+    let parsedConfig: Record<string, unknown>;
+    try {
+      parsedConfig = JSON.parse(configJson);
+    } catch {
+      alert('JSON 格式不正确，请检查');
+      return;
+    }
+
+    setSavingConfig(true);
+    try {
+      const response = await fetch(`/api/scheduled-tasks/${configTask.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_config: parsedConfig }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('配置保存成功');
+        setConfigDialogOpen(false);
+        fetchTasks();
+      } else {
+        alert(result.error || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存配置失败:', error);
+      alert('保存配置失败');
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -475,7 +525,7 @@ export default function ScheduledTasksPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-1">
-                          <Button variant="ghost" size="icon" title="配置">
+                          <Button variant="ghost" size="icon" title="配置" onClick={() => handleConfig(task)}>
                             <Settings className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="icon" title="编辑" onClick={() => handleEdit(task)}>
@@ -581,6 +631,43 @@ export default function ScheduledTasksPage() {
               <Button onClick={handleSave} disabled={saving}>
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {dialogMode === 'create' ? '创建' : '保存'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 配置弹窗 */}
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>任务配置 - {configTask?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>配置参数 (JSON 格式)</Label>
+                <Textarea
+                  value={configJson}
+                  onChange={(e) => setConfigJson(e.target.value)}
+                  placeholder='{"key": "value"}'
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500">
+                  请输入有效的 JSON 格式配置。不同任务类型有不同的配置项，例如：
+                </p>
+                <div className="text-xs text-gray-500 space-y-1 bg-gray-50 p-2 rounded">
+                  <div><strong>系统巡检:</strong> {"{"}"checkItems": ["cpu", "memory", "disk"]{"}"}</div>
+                  <div><strong>备份检查:</strong> {"{"}"target": "database", "retentionDays": 30{"}"}</div>
+                  <div><strong>安全扫描:</strong> {"{"}"scanType": "full", "report": true{"}"}</div>
+                  <div><strong>报告生成:</strong> {"{"}"type": "alert_summary", "recipients": ["admin@example.com"]{"}"}</div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+              <Button onClick={handleSaveConfig} disabled={savingConfig}>
+                {savingConfig && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                保存配置
               </Button>
             </DialogFooter>
           </DialogContent>
