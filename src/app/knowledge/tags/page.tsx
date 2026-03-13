@@ -157,7 +157,8 @@ export default function KnowledgeTagsPage() {
   };
 
   // 删除标签
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (e: React.MouseEvent) => {
+    e.preventDefault(); // 阻止对话框默认关闭行为
     if (!currentTag) return;
 
     setSaving(true);
@@ -424,14 +425,14 @@ export default function KnowledgeTagsPage() {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
+              <Button
                 onClick={handleConfirmDelete}
                 disabled={saving}
                 className="bg-red-600 hover:bg-red-700"
               >
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 删除
-              </AlertDialogAction>
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
