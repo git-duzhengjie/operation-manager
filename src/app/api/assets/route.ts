@@ -345,3 +345,115 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// POST: 新增资产
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, type, model, ip, customerId, projectId, status, location, specifications, description } = body;
+
+    // 验证必填字段
+    if (!name || !type) {
+      return NextResponse.json({
+        success: false,
+        error: '资产名称和类型为必填项',
+      }, { status: 400 });
+    }
+
+    try {
+      // 尝试插入数据库
+      const [newAsset] = await db
+        .insert(assets)
+        .values({
+          name,
+          type,
+          model: model || null,
+          ip: ip || null,
+          customerId: customerId || null,
+          projectId: projectId || null,
+          status: status || 'normal',
+          location: location || null,
+          specifications: specifications || null,
+          description: description || null,
+        })
+        .returning();
+
+      // 生成资产编号
+      const assetCode = `AST${String(newAsset.id).padStart(3, '0')}`;
+      
+      // 更新资产编号
+      await db
+        .update(assets)
+        .set({ assetCode })
+        .where(eq(assets.id, newAsset.id));
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: assetCode,
+          name: newAsset.name,
+          type: newAsset.type,
+          typeName: typeNames[newAsset.type || ''] || newAsset.type,
+          model: newAsset.model,
+          ip: newAsset.ip,
+          customer: customerId ? customerNames[customerId] || null : null,
+          project: projectId ? projectNames[projectId] || null : null,
+          status: newAsset.status,
+          statusName: statusMap[newAsset.status || ''] || newAsset.status,
+          location: newAsset.location,
+        },
+        message: '资产创建成功',
+      });
+    } catch {
+      // 内存回退
+      console.log('Database not available, using memory storage for new asset');
+      
+      // 生成资产编号
+      const newId = memoryAssets.length + 1;
+      const assetCode = `AST${String(newId).padStart(3, '0')}`;
+      
+      const newAsset = {
+        id: newId,
+        assetCode,
+        name,
+        type,
+        model: model || null,
+        ip: ip || null,
+        customerId: customerId || null,
+        projectId: projectId || null,
+        status: status || 'normal',
+        location: location || null,
+        specifications: specifications || null,
+        description: description || null,
+        createdAt: new Date(),
+      };
+      
+      memoryAssets.push(newAsset);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: assetCode,
+          name: newAsset.name,
+          type: newAsset.type,
+          typeName: typeNames[newAsset.type] || newAsset.type,
+          model: newAsset.model,
+          ip: newAsset.ip,
+          customer: customerId ? customerNames[customerId] || null : null,
+          project: projectId ? projectNames[projectId] || null : null,
+          status: newAsset.status,
+          statusName: statusMap[newAsset.status] || newAsset.status,
+          location: newAsset.location,
+        },
+        message: '资产创建成功',
+        fallback: true,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to create asset:', error);
+    return NextResponse.json({
+      success: false,
+      error: '创建资产失败',
+    }, { status: 500 });
+  }
+}
