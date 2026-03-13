@@ -521,8 +521,8 @@ INSERT INTO tickets (ticket_no, title, type, status, priority, customer_id, cust
 ('WO20240101001', '服务器磁盘空间不足告警', 'incident', 'processing', 'high', 1, '市财政局', 1, '预算管理系统', 1, 2, 2, '张工', '应用服务器-01磁盘空间使用率达到90%，需要及时处理', NOW() + INTERVAL '1 day', NOW() - INTERVAL '1 day'),
 ('WO20240101002', '数据库备份失败', 'incident', 'pending', 'critical', 1, '市财政局', 1, '预算管理系统', 2, 3, NULL, NULL, '数据库服务器-01每日备份任务失败，错误代码：E001', NOW() + INTERVAL '12 hours', NOW()),
 ('WO20240101003', '网络设备配置变更申请', 'change', 'resolved', 'medium', 1, '市财政局', NULL, NULL, 3, 2, 2, '张工', '核心交换机需要新增VLAN配置', NOW() - INTERVAL '2 days', NOW() - INTERVAL '3 days'),
-('WO20240101004', '人事系统登录缓慢', 'incident', 'processing', 'medium', 2, '市人社局', 2, '人事管理系统', 4, 4, 2, '张工', '用户反馈人事管理系统登录响应时间超过10秒', NOW() + INTERVAL '2 days', NOW() - INTERVAL '2 days'),
-('WO20240101005', '新系统上线支持申请', 'request', 'pending', 'low', 5, '市住建局', 5, '房产管理系统', NULL, 5, NULL, NULL, '房产管理系统即将上线，需要运维支持', NOW() + INTERVAL '7 days', NOW())
+('WO20240101004', '人事系统登录缓慢', 'incident', 'processing', 'medium', 2, '市人社局', 2, '人事管理系统', 4, 3, 2, '张工', '用户反馈人事管理系统登录响应时间超过10秒', NOW() + INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+('WO20240101005', '新系统上线支持申请', 'request', 'pending', 'low', 5, '市住建局', 5, '房产管理系统', NULL, 2, NULL, NULL, '房产管理系统即将上线，需要运维支持', NOW() + INTERVAL '7 days', NOW())
 ON CONFLICT (ticket_no) DO NOTHING;
 
 -- ===========================================
