@@ -48,15 +48,15 @@ interface Project {
   id: number;
   name: string;
   code: string | null;
-  customerId: number | null;
+  customer_id: number | null;
   customerName: string | null;
   manager: string | null;
-  startDate: string | null;
-  endDate: string | null;
+  start_date: string | null;
+  end_date: string | null;
   status: string;
   description: string | null;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Customer {
@@ -210,10 +210,10 @@ export default function ProjectsPage() {
     setFormData({
       name: project.name,
       code: project.code || '',
-      customerId: project.customerId ? String(project.customerId) : '',
+      customerId: project.customer_id ? String(project.customer_id) : '',
       manager: project.manager || '',
-      startDate: project.startDate ? project.startDate.split('T')[0] : '',
-      endDate: project.endDate ? project.endDate.split('T')[0] : '',
+      startDate: project.start_date ? project.start_date.split('T')[0] : '',
+      endDate: project.end_date ? project.end_date.split('T')[0] : '',
       status: project.status,
       description: project.description || '',
     });
@@ -227,10 +227,10 @@ export default function ProjectsPage() {
     setFormData({
       name: project.name,
       code: project.code || '',
-      customerId: project.customerId ? String(project.customerId) : '',
+      customerId: project.customer_id ? String(project.customer_id) : '',
       manager: project.manager || '',
-      startDate: project.startDate ? project.startDate.split('T')[0] : '',
-      endDate: project.endDate ? project.endDate.split('T')[0] : '',
+      startDate: project.start_date ? project.start_date.split('T')[0] : '',
+      endDate: project.end_date ? project.end_date.split('T')[0] : '',
       status: project.status,
       description: project.description || '',
     });
@@ -475,8 +475,8 @@ export default function ProjectsPage() {
                         {statusNames[project.status] || project.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDate(project.startDate)}</TableCell>
-                    <TableCell>{formatDate(project.endDate)}</TableCell>
+                    <TableCell>{formatDate(project.start_date)}</TableCell>
+                    <TableCell>{formatDate(project.end_date)}</TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-1">
                         <Button
