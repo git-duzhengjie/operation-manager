@@ -47,18 +47,26 @@ export async function POST(request: NextRequest) {
     // 验证密码
     const dbPassword = user.password as string;
     
+    console.log('[Login Debug] Username:', username);
+    console.log('[Login Debug] User found:', !!user);
+    console.log('[Login Debug] DB password type:', typeof dbPassword);
+    console.log('[Login Debug] DB password prefix:', dbPassword?.substring(0, 10));
+    
     // 检查是否是 bcrypt 哈希密码（以 $2a$ 或 $2b$ 开头）
     let isValidPassword = false;
     
     if (dbPassword && (dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$'))) {
       // bcrypt 加密密码验证
       isValidPassword = await bcrypt.compare(password, dbPassword);
+      console.log('[Login Debug] bcrypt validation result:', isValidPassword);
     } else if (dbPassword) {
       // 明文密码验证
       isValidPassword = password === dbPassword;
+      console.log('[Login Debug] plaintext validation result:', isValidPassword, 'input:', password, 'db:', dbPassword);
     } else {
       // 数据库密码为空，使用默认密码
       isValidPassword = password === 'admin123';
+      console.log('[Login Debug] default password validation result:', isValidPassword);
     }
     
     if (!isValidPassword) {

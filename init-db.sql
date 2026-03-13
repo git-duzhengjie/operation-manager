@@ -352,9 +352,12 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 -- ===========================================
 -- 插入默认管理员账户
 -- 密码: admin123 (请在生产环境中修改)
+-- 注意：这里使用明文密码，生产环境建议使用 bcrypt 加密
 -- ===========================================
 INSERT INTO users (username, password, real_name, email, role, is_active) VALUES
-('admin', '$2b$10$OmZAKPrYRjeTugIGBEEFHOxnLhDSvxYtXj6c.KOSw4fhceDA7rG9q', '系统管理员', 'admin@example.com', 'admin', TRUE)
+('admin', 'admin123', '系统管理员', 'admin@example.com', 'admin', TRUE),
+('zhangsan', '123456', '张三', 'zhangsan@example.com', 'internal', TRUE),
+('lisi', '123456', '李四', 'lisi@example.com', 'internal', TRUE)
 ON CONFLICT (username) DO NOTHING;
 
 -- ===========================================
