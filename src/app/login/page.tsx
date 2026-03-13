@@ -6,21 +6,53 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Lock } from 'lucide-react';
+import { Shield, User, Lock, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // 模拟验证用户名密码
-    if (username && password) {
-      // TODO: 实际调用登录接口
-      // 存储登录状态
+    
+    if (!username.trim() || !password.trim()) {
+      toast.error('请输入用户名和密码');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        toast.error(result.error || '登录失败');
+        return;
+      }
+
+      // 存储登录状态和用户信息
       localStorage.setItem('oms_is_logged_in', 'true');
+      localStorage.setItem('oms_user_id', String(result.data.user.id));
+      localStorage.setItem('oms_user_role', result.data.user.role);
+      
+      toast.success('登录成功');
       router.push('/');
+    } catch (error) {
+      console.error('登录失败:', error);
+      toast.error('登录失败，请稍后重试');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,6 +88,7 @@ export default function LoginPage() {
                     onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
@@ -71,10 +104,12 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     required
+                    disabled={loading}
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 登录
               </Button>
             </form>
