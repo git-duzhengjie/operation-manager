@@ -458,6 +458,17 @@ INSERT INTO customers (name, code, contact_person, contact_phone, status) VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- ===========================================
+-- 插入默认项目数据
+-- ===========================================
+INSERT INTO projects (name, code, customer_id, description, start_date, end_date, status) VALUES
+('预算管理系统', 'BMS', 1, '财政局预算编制与执行管理系统', '2022-01-01', '2025-12-31', 'active'),
+('人事管理系统', 'HRS', 2, '人社局人事档案管理系统', '2023-01-01', '2026-12-31', 'active'),
+('医院信息系统', 'HIS', 3, '卫健委医院信息管理系统', '2022-06-01', '2025-12-31', 'active'),
+('学籍管理系统', 'SMS', 5, '教育学籍信息管理系统', '2023-05-01', '2026-12-31', 'active'),
+('房产管理系统', 'RMS', 4, '公安房产信息管理系统', '2023-07-01', '2026-12-31', 'active')
+ON CONFLICT (code) DO NOTHING;
+
+-- ===========================================
 -- 插入默认例行任务数据
 -- ===========================================
 INSERT INTO scheduled_tasks (name, description, cron_expression, task_type, task_config, status, last_run_at, next_run_at, created_by) VALUES
