@@ -414,7 +414,7 @@ export default function MonitoringPage() {
                             variant="link"
                             size="sm"
                             className="p-0 h-auto text-blue-600"
-                            onClick={() => router.push(`/tickets/${alert.ticketId}`)}
+                            onClick={() => router.push(`/tickets/${alert.ticketCode}`)}
                           >
                             <Link className="w-3 h-3 mr-1" />
                             {alert.ticketCode}
@@ -530,7 +530,7 @@ export default function MonitoringPage() {
                     className="p-0 h-auto ml-2"
                     onClick={() => {
                       setDetailDialogOpen(false);
-                      router.push(`/tickets/${selectedAlert.ticketId}`);
+                      router.push(`/tickets/${selectedAlert.ticketCode}`);
                     }}
                   >
                     {selectedAlert.ticketCode}
