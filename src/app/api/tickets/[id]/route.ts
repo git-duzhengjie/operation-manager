@@ -67,15 +67,15 @@ export async function GET(
     const ticketData = {
       id: ticket.ticket_no || id,
       title: ticket.title || '',
-      type: ticket.type ? (typeMap[ticket.type] || ticket.type) : '',
-      status: ticket.status ? (statusMap[ticket.status] || ticket.status) : '',
-      priority: ticket.priority ? (priorityMap[ticket.priority] || ticket.priority) : '',
+      type: ticket.type ? (typeMap[String(ticket.type)] || String(ticket.type)) : '',
+      status: ticket.status ? (statusMap[String(ticket.status)] || String(ticket.status)) : '',
+      priority: ticket.priority ? (priorityMap[String(ticket.priority)] || String(ticket.priority)) : '',
       description: ticket.description || '',
       customer: ticket.customer_name || '-',
       project: '-',
       assignee: '未分配',
-      createdAt: formatDateTime(ticket.created_at),
-      updatedAt: formatDateTime(ticket.updated_at),
+      createdAt: formatDateTime(ticket.created_at as string | null),
+      updatedAt: formatDateTime(ticket.updated_at as string | null),
     };
 
     // 获取工单历史记录（如果有单独的表）

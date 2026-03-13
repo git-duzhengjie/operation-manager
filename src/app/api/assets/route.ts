@@ -32,7 +32,10 @@ const projectNames: Record<number, string> = {
 };
 
 // 格式化资产数据
-function formatAsset(row: Record<string, unknown>) {
+function formatAsset(row: Record<string, unknown> | null) {
+  if (!row) {
+    return null;
+  }
   return {
     id: row.asset_code as string,
     name: row.name as string,
@@ -171,8 +174,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase insert error:', error);
+      console.error('Database insert error:', error);
       throw error;
+    }
+
+    if (!data) {
+      throw new Error('Failed to create asset');
     }
 
     // 生成资产编号
@@ -187,8 +194,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Supabase update error:', updateError);
+      console.error('Database update error:', updateError);
       throw updateError;
+    }
+
+    if (!updatedData) {
+      throw new Error('Failed to update asset code');
     }
 
     return NextResponse.json({

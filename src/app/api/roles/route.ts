@@ -9,7 +9,8 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化角色数据
-async function formatRole(role: Record<string, unknown>, client: ReturnType<typeof getSupabaseClient>) {
+async function formatRole(role: Record<string, unknown> | null, client: ReturnType<typeof getSupabaseClient>) {
+  if (!role) { return null; }
   // 获取角色用户数
   const { count: userCount } = await client
     .from('users')
@@ -124,8 +125,8 @@ export async function GET(request: NextRequest) {
     // 统计信息
     const stats = {
       total: formattedRoles.length,
-      system: formattedRoles.filter((r) => r.isSystem).length,
-      custom: formattedRoles.filter((r) => !r.isSystem).length,
+      system: formattedRoles.filter((r) => r?.isSystem).length,
+      custom: formattedRoles.filter((r) => r && !r.isSystem).length,
     };
 
     return NextResponse.json({
@@ -192,9 +193,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 添加权限
-    if (permissionIds && permissionIds.length > 0) {
+    if (permissionIds && permissionIds.length > 0 && role) {
       const permRecords = permissionIds.map((permId: number) => ({
-        role_id: role.id,
+        role_id: (role as Record<string, unknown>).id,
         permission_id: permId,
       }));
 

@@ -9,7 +9,8 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化服务目录数据
-function formatCatalog(row: Record<string, unknown>) {
+function formatCatalog(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
   return {
     id: String(row.id),
     name: row.name as string,
@@ -23,7 +24,8 @@ function formatCatalog(row: Record<string, unknown>) {
 }
 
 // 格式化服务项目数据
-function formatServiceItem(row: Record<string, unknown>) {
+function formatServiceItem(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
   return {
     id: String(row.id),
     catalogId: row.catalog_id as number,
@@ -280,13 +282,14 @@ export async function POST(request: NextRequest) {
       .order('sort_order', { ascending: false })
       .limit(1);
 
+    const maxSortOrder = (maxSort?.[0] as Record<string, unknown>)?.sort_order as number | undefined;
     const { data, error } = await client
       .from('service_catalogs')
       .insert({
         name,
         icon: icon || '📁',
         description: description || null,
-        sort_order: (maxSort?.[0]?.sort_order || 0) + 1,
+        sort_order: (maxSortOrder || 0) + 1,
         is_active: isActive ?? true,
       })
       .select()

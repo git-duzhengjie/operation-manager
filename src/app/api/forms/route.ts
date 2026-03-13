@@ -20,7 +20,8 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化表单模板数据
-function formatFormTemplate(row: Record<string, unknown>) {
+function formatFormTemplate(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
   return {
     id: String(row.id),
     name: row.name as string,
@@ -299,6 +300,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', id)
       .single();
 
+    const currentVersion = (current as Record<string, unknown>)?.version as number | undefined;
     const { data, error } = await client
       .from('form_templates')
       .update({
@@ -308,7 +310,7 @@ export async function PUT(request: NextRequest) {
         description: description || null,
         fields,
         is_active: isActive,
-        version: (current?.version || 1) + 1,
+        version: (currentVersion || 1) + 1,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

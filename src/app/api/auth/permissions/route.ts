@@ -110,14 +110,14 @@ export async function GET(request: NextRequest) {
         // 将中文权限名称转换为英文代码
         const permNames = perms?.map((p: Record<string, unknown>) => p.name as string) || [];
         permissions = permNames
-          .map((name) => PERMISSION_NAME_TO_CODE[name] || name)
+          .map((name: string) => PERMISSION_NAME_TO_CODE[name] || name)
           .filter(Boolean);
       }
     }
 
     // 如果没有权限数据，使用默认权限
     if (permissions.length === 0) {
-      permissions = getDefaultPermissions(user.role);
+      permissions = getDefaultPermissions(String(user.role));
     }
 
     return NextResponse.json({

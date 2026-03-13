@@ -10,7 +10,10 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化表单模板数据
-function formatFormTemplate(row: Record<string, unknown>) {
+function formatFormTemplate(row: Record<string, unknown> | null) {
+  if (!row) {
+    return null;
+  }
   return {
     id: String(row.id),
     name: row.name as string,
@@ -90,7 +93,7 @@ export async function PUT(
         description: description || null,
         fields,
         is_active: isActive,
-        version: (current?.version || 1) + 1,
+        version: ((current?.version as number) || 1) + 1,
         updated_at: new Date().toISOString(),
       })
       .eq('id', parseInt(id))
@@ -98,7 +101,7 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Supabase update error:', error);
+      console.error('Database update error:', error);
       throw error;
     }
 

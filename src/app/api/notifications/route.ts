@@ -88,7 +88,8 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化通知数据
-function formatNotification(row: Record<string, unknown>) {
+function formatNotification(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
   return {
     id: String(row.id),
     title: row.title as string,

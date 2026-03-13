@@ -16,7 +16,8 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化用户数据
-function formatUser(row: Record<string, unknown>) {
+function formatUser(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
   return {
     id: String(row.id),
     username: row.username as string,

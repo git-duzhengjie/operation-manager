@@ -18,8 +18,9 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化流程数据
-function formatWorkflow(row: Record<string, unknown>) {
-  const steps = row.steps as WorkflowStep[] || [];
+function formatWorkflow(row: Record<string, unknown> | null) {
+  if (!row) { return null; }
+  const steps = (row?.steps as WorkflowStep[]) || [];
   return {
     id: String(row.id),
     name: row.name as string,
@@ -292,6 +293,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', id)
       .single();
 
+    const currentVersion = (current as Record<string, unknown>)?.version as number | undefined;
     const { data, error } = await client
       .from('workflows')
       .update({
@@ -302,7 +304,7 @@ export async function PUT(request: NextRequest) {
         description: description || null,
         steps,
         is_active: isActive,
-        version: (current?.version || 1) + 1,
+        version: (currentVersion || 1) + 1,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
