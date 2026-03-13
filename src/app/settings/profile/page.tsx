@@ -129,19 +129,24 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   
   const handleChangePassword = async () => {
-    if (!passwordForm.currentPassword) {
+    // 去除首尾空格
+    const currentPwd = passwordForm.currentPassword.trim();
+    const newPwd = passwordForm.newPassword.trim();
+    const confirmPwd = passwordForm.confirmPassword.trim();
+
+    if (!currentPwd) {
       toast.error('请输入当前密码');
       return;
     }
-    if (!passwordForm.newPassword) {
+    if (!newPwd) {
       toast.error('请输入新密码');
       return;
     }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    if (newPwd !== confirmPwd) {
       toast.error('两次输入的密码不一致');
       return;
     }
-    if (passwordForm.newPassword.length < 6) {
+    if (newPwd.length < 6) {
       toast.error('密码长度不能少于6位');
       return;
     }
@@ -152,8 +157,8 @@ export default function SettingsPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
+          currentPassword: currentPwd,
+          newPassword: newPwd,
         }),
       });
 
@@ -354,7 +359,7 @@ export default function SettingsPage() {
                       <Input
                         type={showPassword ? 'text' : 'password'}
                         value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value.trim() })}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                         placeholder="请输入当前密码"
                       />
                       <button
@@ -371,7 +376,7 @@ export default function SettingsPage() {
                     <Input
                       type="password"
                       value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value.trim() })}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                       placeholder="请输入新密码（至少6位）"
                     />
                   </div>
@@ -380,13 +385,13 @@ export default function SettingsPage() {
                     <Input
                       type="password"
                       value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value.trim() })}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                       placeholder="请再次输入新密码"
                     />
-                    {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
+                    {passwordForm.confirmPassword && passwordForm.newPassword.trim() !== passwordForm.confirmPassword.trim() && (
                       <p className="text-sm text-red-500">两次输入的密码不一致</p>
                     )}
-                    {passwordForm.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword && (
+                    {passwordForm.confirmPassword && passwordForm.newPassword.trim() === passwordForm.confirmPassword.trim() && (
                       <p className="text-sm text-green-500">密码输入一致</p>
                     )}
                   </div>
