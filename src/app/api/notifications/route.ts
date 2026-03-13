@@ -1,105 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { notifications } from '@/db/schema';
-import { eq, desc, and, isNull, or } from 'drizzle-orm';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
-// 内存存储回退
-const memoryNotifications = [
+// 初始通知数据
+const seedNotifications = [
   {
-    id: 1,
     title: '工单已分配',
     message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。该工单为服务器磁盘空间不足告警，优先级为高。',
-    type: 'info' as const,
-    category: 'workorder' as const,
-    isRead: false,
-    userId: null,
-    relatedId: 'WO20240101001',
-    createdAt: new Date(Date.now() - 5 * 60 * 1000),
+    type: 'info',
+    category: 'workorder',
+    is_read: false,
+    related_id: 'WO20240101001',
   },
   {
-    id: 2,
     title: '告警通知',
     message: '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。',
-    type: 'warning' as const,
-    category: 'alert' as const,
-    isRead: false,
-    userId: null,
-    relatedId: 'AST001',
-    createdAt: new Date(Date.now() - 10 * 60 * 1000),
+    type: 'warning',
+    category: 'alert',
+    is_read: false,
+    related_id: 'AST001',
   },
   {
-    id: 3,
     title: '工单已完成',
     message: '工单 WO20240101003 已被标记为已完成，感谢您的处理。',
-    type: 'success' as const,
-    category: 'workorder' as const,
-    isRead: true,
-    userId: null,
-    relatedId: 'WO20240101003',
-    createdAt: new Date(Date.now() - 30 * 60 * 1000),
+    type: 'success',
+    category: 'workorder',
+    is_read: true,
+    related_id: 'WO20240101003',
   },
   {
-    id: 4,
     title: '系统升级通知',
     message: '系统将于今晚22:00进行升级维护，预计维护时长1小时，届时系统将暂停服务。',
-    type: 'info' as const,
-    category: 'system' as const,
-    isRead: true,
-    userId: null,
-    relatedId: null,
-    createdAt: new Date(Date.now() - 60 * 60 * 1000),
+    type: 'info',
+    category: 'system',
+    is_read: true,
+    related_id: null,
   },
   {
-    id: 5,
     title: '知识库更新',
     message: '有3篇新文章被添加到知识库：《服务器安全加固指南》、《常见网络问题解决方案》、《系统监控配置手册》。',
-    type: 'success' as const,
-    category: 'knowledge' as const,
-    isRead: true,
-    userId: null,
-    relatedId: null,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    type: 'success',
+    category: 'knowledge',
+    is_read: true,
+    related_id: null,
   },
   {
-    id: 6,
     title: '资产到期提醒',
     message: '资产 AST001（应用服务器-01）的维保合同将于7天后到期，请及时续保。',
-    type: 'warning' as const,
-    category: 'asset' as const,
-    isRead: false,
-    userId: null,
-    relatedId: 'AST001',
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    type: 'warning',
+    category: 'asset',
+    is_read: false,
+    related_id: 'AST001',
   },
   {
-    id: 7,
     title: '巡检任务完成',
     message: '本周例行巡检任务已完成，共检查设备45台，发现异常3项，已生成巡检报告。',
-    type: 'success' as const,
-    category: 'routine' as const,
-    isRead: true,
-    userId: null,
-    relatedId: null,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    type: 'success',
+    category: 'routine',
+    is_read: true,
+    related_id: null,
   },
   {
-    id: 8,
     title: '新工单待审批',
     message: '您有2个变更申请等待审批，请及时处理。',
-    type: 'info' as const,
-    category: 'workorder' as const,
-    isRead: true,
-    userId: null,
-    relatedId: null,
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    type: 'info',
+    category: 'workorder',
+    is_read: true,
+    related_id: null,
   },
 ];
 
-// 已读状态跟踪（内存回退时使用）
-const readStatus = new Map<number, boolean>();
-
 // 格式化时间
-function formatTime(date: Date): string {
+function formatTime(dateStr: string | null): string {
+  if (!dateStr) return '未知';
+  
+  const date = new Date(dateStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const minutes = Math.floor(diff / (1000 * 60));
@@ -113,165 +87,219 @@ function formatTime(date: Date): string {
   return date.toLocaleDateString('zh-CN');
 }
 
+// 格式化通知数据
+function formatNotification(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    title: row.title as string,
+    message: row.message as string,
+    type: row.type as string,
+    category: row.category as string,
+    read: row.is_read as boolean,
+    time: formatTime(row.created_at as string),
+    relatedId: row.related_id as string | null,
+  };
+}
+
 // GET: 获取通知列表
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
   try {
-    let dbNotifications;
-    
-    try {
-      // 查询所有用户的通知（userId 为 null）和当前用户的通知
-      dbNotifications = await db
-        .select()
-        .from(notifications)
-        .where(isNull(notifications.userId))
-        .orderBy(desc(notifications.createdAt))
-        .limit(50);
-    } catch {
-      // 数据库不可用，使用内存数据
-      console.log('Database not available, using memory storage for notifications');
-      let filtered = [...memoryNotifications];
-      
-      // 应用已读状态
-      filtered = filtered.map(n => ({
-        ...n,
-        isRead: readStatus.get(n.id) ?? n.isRead,
-      }));
-      
-      if (unreadOnly) {
-        filtered = filtered.filter(n => !n.isRead);
-      }
-      
-      return NextResponse.json({
-        success: true,
-        data: filtered.map(n => ({
-          id: n.id.toString(),
-          title: n.title,
-          message: n.message,
-          type: n.type,
-          category: n.category,
-          read: n.isRead,
-          time: formatTime(n.createdAt),
-          relatedId: n.relatedId,
-        })),
-        fallback: true,
-      });
+    const client = getSupabaseClient();
+
+    // 构建查询
+    let query = client
+      .from('notifications')
+      .select('*')
+      .is('user_id', null) // 只查询系统通知（所有用户可见）
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (unreadOnly) {
+      query = query.eq('is_read', false);
     }
 
-    let result = dbNotifications;
-    if (unreadOnly) {
-      result = result.filter(n => !n.isRead);
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
     }
 
     return NextResponse.json({
       success: true,
-      data: result.map(n => ({
-        id: n.id.toString(),
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        category: n.category,
-        read: n.isRead,
-        time: formatTime(n.createdAt || new Date()),
-        relatedId: n.relatedId,
-      })),
+      data: (data || []).map(formatNotification),
     });
   } catch (error) {
     console.error('Failed to fetch notifications:', error);
-    return NextResponse.json({
-      success: false,
-      error: '获取通知失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '获取通知失败',
+      },
+      { status: 500 }
+    );
   }
 }
 
-// POST: 标记通知为已读
+// POST: 各种操作
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, id } = body;
+    const client = getSupabaseClient();
+
+    if (action === 'seed') {
+      // 初始化测试数据
+      const { data, error } = await client
+        .from('notifications')
+        .insert(seedNotifications)
+        .select();
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `成功插入 ${data?.length || 0} 条通知`,
+        data: data,
+      });
+    }
 
     if (action === 'markRead' && id) {
       // 标记单个通知为已读
-      try {
-        await db
-          .update(notifications)
-          .set({ isRead: true })
-          .where(eq(notifications.id, parseInt(id)));
-      } catch {
-        // 内存回退
-        readStatus.set(parseInt(id), true);
+      const { error } = await client
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', parseInt(id));
+
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
       }
-      
+
       return NextResponse.json({ success: true });
     }
 
     if (action === 'markAllRead') {
       // 标记所有通知为已读
-      try {
-        await db
-          .update(notifications)
-          .set({ isRead: true })
-          .where(eq(notifications.isRead, false));
-      } catch {
-        // 内存回退
-        memoryNotifications.forEach(n => readStatus.set(n.id, true));
+      const { error } = await client
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('is_read', false)
+        .is('user_id', null);
+
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
       }
-      
+
       return NextResponse.json({ success: true });
     }
 
     if (action === 'delete' && id) {
       // 删除通知
-      try {
-        await db
-          .delete(notifications)
-          .where(eq(notifications.id, parseInt(id)));
-      } catch {
-        // 内存回退：从列表中移除
-        const index = memoryNotifications.findIndex(n => n.id === parseInt(id));
-        if (index > -1) {
-          memoryNotifications.splice(index, 1);
-        }
+      const { error } = await client
+        .from('notifications')
+        .delete()
+        .eq('id', parseInt(id));
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
       }
-      
+
       return NextResponse.json({ success: true });
     }
 
     if (action === 'clearRead') {
       // 清除已读通知
-      try {
-        await db
-          .delete(notifications)
-          .where(eq(notifications.isRead, true));
-      } catch {
-        // 内存回退：移除已读通知
-        const readIds = [...readStatus.entries()]
-          .filter(([, isRead]) => isRead)
-          .map(([id]) => id);
-        
-        for (let i = memoryNotifications.length - 1; i >= 0; i--) {
-          if (readStatus.get(memoryNotifications[i].id) === true) {
-            memoryNotifications.splice(i, 1);
-          }
-        }
-        readIds.forEach(id => readStatus.delete(id));
+      const { error } = await client
+        .from('notifications')
+        .delete()
+        .eq('is_read', true)
+        .is('user_id', null);
+
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
       }
-      
+
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({
-      success: false,
-      error: '无效的操作',
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '无效的操作',
+      },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Failed to process notification action:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: '操作失败',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT: 创建新通知
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { title, message, type, category, userId, relatedId } = body;
+
+    if (!title || !message) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '标题和内容为必填项',
+        },
+        { status: 400 }
+      );
+    }
+
+    const client = getSupabaseClient();
+
+    const { data, error } = await client
+      .from('notifications')
+      .insert({
+        title,
+        message,
+        type: type || 'info',
+        category: category || 'system',
+        user_id: userId || null,
+        related_id: relatedId || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
+    }
+
     return NextResponse.json({
-      success: false,
-      error: '操作失败',
-    }, { status: 500 });
+      success: true,
+      data: formatNotification(data),
+      message: '通知创建成功',
+    });
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: '创建通知失败',
+      },
+      { status: 500 }
+    );
   }
 }

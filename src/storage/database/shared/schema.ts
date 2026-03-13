@@ -1,4 +1,4 @@
-import { pgTable, serial, timestamp, varchar, integer, text, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, timestamp, varchar, integer, text, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // 系统表 - 必须保留
@@ -33,6 +33,29 @@ export const assets = pgTable(
   ]
 );
 
+// 通知表
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 200 }).notNull(),
+    message: text("message").notNull(),
+    type: varchar("type", { length: 20 }).default('info').notNull(),
+    category: varchar("category", { length: 20 }).default('system').notNull(),
+    isRead: boolean("is_read").default(false).notNull(),
+    userId: integer("user_id"),
+    relatedId: varchar("related_id", { length: 50 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("notifications_user_idx").on(table.userId),
+    index("notifications_read_idx").on(table.isRead),
+    index("notifications_category_idx").on(table.category),
+  ]
+);
+
 // TypeScript 类型
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
