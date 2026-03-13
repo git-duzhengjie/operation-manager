@@ -166,6 +166,10 @@ export default function KnowledgePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<string>('');
 
+  // 查看文章详情
+  const [showView, setShowView] = useState(false);
+  const [viewArticle, setViewArticle] = useState<typeof initialArticles[0] | null>(null);
+
   // 获取可用标签列表
   useEffect(() => {
     const fetchTags = async () => {
@@ -391,6 +395,16 @@ export default function KnowledgePage() {
     setShowEdit(true);
   };
 
+  // 查看文章详情
+  const handleView = (article: typeof initialArticles[0]) => {
+    setViewArticle(article);
+    setShowView(true);
+    // 增加浏览量
+    setArticles(prev => prev.map(a => 
+      a.id === article.id ? { ...a, views: a.views + 1 } : a
+    ));
+  };
+
   const handleSaveEdit = async () => {
     if (!editFormData.title.trim()) {
       toast.error('请输入文章标题');
@@ -564,13 +578,13 @@ export default function KnowledgePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredArticles.map((article) => (
-              <Card key={article.id} className="hover:shadow-lg transition-shadow">
+              <Card key={article.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleView(article)}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <Badge className={articleTypes[article.type].color}>
                       {articleTypes[article.type].label}
                     </Badge>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
                       <Button 
                         variant="ghost" 
                         size="icon"
@@ -587,7 +601,7 @@ export default function KnowledgePage() {
                       </Button>
                     </div>
                   </div>
-                  <CardTitle className="text-lg mt-2 line-clamp-2">
+                  <CardTitle className="text-lg mt-2 line-clamp-2 hover:text-blue-600">
                     {article.title}
                   </CardTitle>
                 </CardHeader>
@@ -1008,6 +1022,62 @@ export default function KnowledgePage() {
             </Button>
             <Button onClick={() => setShowSuccess(false)}>
               继续创建
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 查看文章详情 */}
+      <Dialog open={showView} onOpenChange={setShowView}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-8">
+              <div>
+                <Badge className={viewArticle ? articleTypes[viewArticle.type].color : ''}>
+                  {viewArticle ? articleTypes[viewArticle.type].label : ''}
+                </Badge>
+                <DialogTitle className="text-xl mt-2">{viewArticle?.title}</DialogTitle>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-gray-500 mt-2">
+              <span>作者：{viewArticle?.author}</span>
+              <span>·</span>
+              <span className="flex items-center"><Eye className="w-4 h-4 mr-1" />{viewArticle?.views}</span>
+              <span>·</span>
+              <span className="flex items-center"><Clock className="w-4 h-4 mr-1" />{viewArticle?.updatedAt}</span>
+              <span>·</span>
+              <span>版本 {viewArticle?.version}</span>
+            </div>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {/* 标签 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {viewArticle?.tags.map((tag) => (
+                <Badge key={tag} variant="outline">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            
+            {/* 文章内容 */}
+            <div className="prose prose-sm max-w-none">
+              <div className="whitespace-pre-wrap text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
+                {viewArticle?.content || '暂无内容'}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-4 mt-6 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowView(false)}>
+              关闭
+            </Button>
+            <Button onClick={() => {
+              setShowView(false);
+              if (viewArticle) handleEdit(viewArticle);
+            }}>
+              <Edit className="w-4 h-4 mr-2" />
+              编辑文章
             </Button>
           </div>
         </DialogContent>
