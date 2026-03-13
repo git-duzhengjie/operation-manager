@@ -305,7 +305,7 @@ class InsertBuilder<T = Record<string, unknown>> {
     this.data = data ?? null;
   }
 
-  select(columns: string): InsertBuilder<T> {
+  select(columns: string = '*'): InsertBuilder<T> {
     this.returning = columns.split(',').map(c => c.trim());
     return this;
   }
@@ -409,7 +409,7 @@ class UpdateBuilder<T = Record<string, unknown>> {
     return this;
   }
 
-  select(columns: string): UpdateBuilder<T> {
+  select(columns: string = '*'): UpdateBuilder<T> {
     this.returning = columns.split(',').map(c => c.trim());
     return this;
   }
@@ -505,7 +505,7 @@ class DeleteBuilder<T = Record<string, unknown>> {
     return this;
   }
 
-  select(columns: string): DeleteBuilder<T> {
+  select(columns: string = '*'): DeleteBuilder<T> {
     this.returning = columns.split(',').map(c => c.trim());
     return this;
   }
