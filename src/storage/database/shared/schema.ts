@@ -95,6 +95,52 @@ export interface FormTemplateField {
   order: number;
 }
 
+// 流程步骤定义
+export interface WorkflowStep {
+  id: string;
+  name: string;
+  type: 'start' | 'approval' | 'processing' | 'notification' | 'condition' | 'end';
+  order: number;
+  assignee?: {
+    type: 'user' | 'role' | 'department' | 'script';
+    value: string;
+  };
+  timeout?: number; // 超时时间（小时）
+  actions?: {
+    name: string;
+    targetStep?: string;
+  }[];
+  conditions?: {
+    field: string;
+    operator: 'eq' | 'ne' | 'gt' | 'lt' | 'contains';
+    value: string;
+    targetStep: string;
+  }[];
+}
+
+// 流程表
+export const workflows = pgTable(
+  "workflows",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    type: varchar("type", { length: 20 }).notNull(), // incident, change, request, problem
+    catalogId: integer("catalog_id"),
+    catalogName: varchar("catalog_name", { length: 100 }),
+    description: text("description"),
+    steps: jsonb("steps").notNull().$type<WorkflowStep[]>(),
+    isActive: boolean("is_active").default(true).notNull(),
+    version: integer("version").default(1),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("workflows_type_idx").on(table.type),
+    index("workflows_catalog_idx").on(table.catalogId),
+    index("workflows_active_idx").on(table.isActive),
+  ]
+);
+
 // TypeScript 类型
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
@@ -102,3 +148,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
 export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
+export type Workflow = typeof workflows.$inferSelect;
+export type InsertWorkflow = typeof workflows.$inferInsert;
