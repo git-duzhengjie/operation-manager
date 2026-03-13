@@ -14,14 +14,20 @@ import {
   Calendar,
   Building2,
   AlertTriangle,
-  HelpCircle,
-  ClipboardList,
-  Workflow,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import { usePermissions, PERMISSIONS, Permission } from '@/contexts/permission-context';
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  icon: typeof LayoutDashboard;
+  href: string;
+  permissions?: Permission[];
+  children?: { title: string; href: string; permissions?: Permission[] }[];
+}
+
+const menuItems: MenuItem[] = [
   {
     title: '仪表板',
     icon: LayoutDashboard,
@@ -32,73 +38,80 @@ const menuItems = [
     icon: Building2,
     href: '/portal',
     children: [
-      { title: '快速提单', href: '/portal/quick-submit' },
-      { title: '工单查询', href: '/portal/tickets' },
-      { title: '知识库', href: '/portal/knowledge' },
+      { title: '快速提单', href: '/portal/quick-submit', permissions: [PERMISSIONS.TICKET_CREATE] },
+      { title: '工单查询', href: '/portal/tickets', permissions: [PERMISSIONS.TICKET_VIEW] },
+      { title: '知识库', href: '/portal/knowledge', permissions: [PERMISSIONS.KNOWLEDGE_VIEW] },
     ],
   },
   {
     title: '工单管理',
     icon: Ticket,
     href: '/tickets',
+    permissions: [PERMISSIONS.TICKET_VIEW],
     children: [
-      { title: '工单列表', href: '/tickets' },
-      { title: '工单统计', href: '/tickets/statistics' },
+      { title: '工单列表', href: '/tickets', permissions: [PERMISSIONS.TICKET_VIEW] },
+      { title: '工单统计', href: '/tickets/statistics', permissions: [PERMISSIONS.TICKET_VIEW] },
     ],
   },
   {
     title: '资产管理',
     icon: Package,
     href: '/assets',
+    permissions: [PERMISSIONS.ASSET_VIEW],
     children: [
-      { title: '资产台账', href: '/assets' },
-      { title: '客户管理', href: '/assets/customers' },
-      { title: '项目管理', href: '/assets/projects' },
+      { title: '资产台账', href: '/assets', permissions: [PERMISSIONS.ASSET_VIEW] },
+      { title: '客户管理', href: '/assets/customers', permissions: [PERMISSIONS.ASSET_VIEW] },
+      { title: '项目管理', href: '/assets/projects', permissions: [PERMISSIONS.ASSET_VIEW] },
     ],
   },
   {
     title: '知识库',
     icon: BookOpen,
     href: '/knowledge',
+    permissions: [PERMISSIONS.KNOWLEDGE_VIEW],
     children: [
-      { title: '文章管理', href: '/knowledge' },
-      { title: '分类标签', href: '/knowledge/tags' },
+      { title: '文章管理', href: '/knowledge', permissions: [PERMISSIONS.KNOWLEDGE_VIEW] },
+      { title: '分类标签', href: '/knowledge/tags', permissions: [PERMISSIONS.KNOWLEDGE_VIEW] },
     ],
   },
   {
     title: '服务管理',
     icon: Settings,
     href: '/services',
+    permissions: [PERMISSIONS.SYSTEM_CONFIG],
     children: [
-      { title: '服务目录', href: '/services/catalog' },
-      { title: '流程配置', href: '/services/workflows' },
-      { title: '表单模板', href: '/services/forms' },
+      { title: '服务目录', href: '/services/catalog', permissions: [PERMISSIONS.SYSTEM_CONFIG] },
+      { title: '流程配置', href: '/services/workflows', permissions: [PERMISSIONS.SYSTEM_CONFIG] },
+      { title: '表单模板', href: '/services/forms', permissions: [PERMISSIONS.SYSTEM_CONFIG] },
     ],
   },
   {
     title: '例行工作',
     icon: Calendar,
     href: '/scheduled-tasks',
+    permissions: [PERMISSIONS.SYSTEM_CONFIG],
   },
   {
     title: '监控告警',
     icon: AlertTriangle,
     href: '/monitoring',
+    permissions: [PERMISSIONS.MONITOR_VIEW],
   },
   {
     title: '系统设置',
     icon: Settings,
     href: '/settings',
     children: [
-      { title: '用户管理', href: '/settings/users' },
-      { title: '角色权限', href: '/settings/roles' },
-      { title: '系统日志', href: '/settings/logs' },
+      { title: '用户管理', href: '/settings/users', permissions: [PERMISSIONS.USER_VIEW] },
+      { title: '角色权限', href: '/settings/roles', permissions: [PERMISSIONS.ROLE_VIEW] },
+      { title: '系统日志', href: '/settings/logs', permissions: [PERMISSIONS.LOG_VIEW] },
     ],
   },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { hasAnyPermission, isLoading } = usePermissions();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
   // 根据当前路径自动展开包含该路径的菜单
@@ -133,7 +146,7 @@ export function AppSidebar() {
   const isExpanded = (href: string) => expandedMenus.has(href);
 
   // 检查菜单或子菜单是否激活
-  const isMenuActive = (item: typeof menuItems[0]) => {
+  const isMenuActive = (item: MenuItem) => {
     if (pathname === item.href) return true;
     if (item.children) {
       return item.children.some((child) => pathname === child.href);
@@ -141,13 +154,66 @@ export function AppSidebar() {
     return false;
   };
 
+  // 检查是否有权限访问菜单
+  const canAccessItem = (item: MenuItem): boolean => {
+    if (!item.permissions || item.permissions.length === 0) {
+      return true;
+    }
+    return hasAnyPermission(item.permissions);
+  };
+
+  // 检查子菜单是否有可访问项
+  const hasAccessibleChildren = (item: MenuItem): boolean => {
+    if (!item.children) return false;
+    return item.children.some((child) => {
+      if (!child.permissions || child.permissions.length === 0) {
+        return true;
+      }
+      return hasAnyPermission(child.permissions);
+    });
+  };
+
+  // 过滤菜单项
+  const filteredMenuItems = menuItems.filter((item) => {
+    // 如果有子菜单，检查是否有可访问的子菜单
+    if (item.children) {
+      return hasAccessibleChildren(item);
+    }
+    // 无子菜单，检查自身权限
+    return canAccessItem(item);
+  });
+
+  // 过滤子菜单项
+  const getFilteredChildren = (item: MenuItem) => {
+    if (!item.children) return [];
+    return item.children.filter((child) => {
+      if (!child.permissions || child.permissions.length === 0) {
+        return true;
+      }
+      return hasAnyPermission(child.permissions);
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+        <div className="h-16 flex items-center justify-center border-b border-gray-200">
+          <h1 className="text-xl font-bold text-gray-900">运维管理系统</h1>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-4">
+          <div className="px-4 py-8 text-center text-gray-400">加载中...</div>
+        </nav>
+      </aside>
+    );
+  }
+
   return (
     <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
       <div className="h-16 flex items-center justify-center border-b border-gray-200">
         <h1 className="text-xl font-bold text-gray-900">运维管理系统</h1>
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <div key={item.href} className="mb-1">
             <div className="flex items-center">
               <Link
@@ -177,7 +243,7 @@ export function AppSidebar() {
             </div>
             {item.children && isExpanded(item.href) && (
               <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100">
-                {item.children.map((child) => (
+                {getFilteredChildren(item).map((child) => (
                   <Link
                     key={child.href}
                     href={child.href}
