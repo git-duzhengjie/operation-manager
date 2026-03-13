@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.eq('is_active', status === 'active');
     }
     if (keyword) {
-      countQuery = countQuery.or(`username.ilike.%${keyword}%,real_name.ilike.%${keyword}%,email.ilike.%${keyword}%`);
+      countQuery = countQuery.or(`username.ilike.%${keyword}%,real_name.ilike.%${keyword}%,email.ilike.%${keyword}%,department.ilike.%${keyword}%`);
     }
 
     // 获取总数
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       dataQuery = dataQuery.eq('is_active', status === 'active');
     }
     if (keyword) {
-      dataQuery = dataQuery.or(`username.ilike.%${keyword}%,real_name.ilike.%${keyword}%,email.ilike.%${keyword}%`);
+      dataQuery = dataQuery.or(`username.ilike.%${keyword}%,real_name.ilike.%${keyword}%,email.ilike.%${keyword}%,department.ilike.%${keyword}%`);
     }
 
     const { data, error } = await dataQuery;
