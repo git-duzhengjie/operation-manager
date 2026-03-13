@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 模拟当前登录用户 ID（实际应从 session 获取）
 const CURRENT_USER_ID = 1;
@@ -28,7 +28,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 查询当前用户
     const { data: userInfo, error: queryError } = await client

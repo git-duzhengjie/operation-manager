@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 中文权限名称到英文代码的映射
 const PERMISSION_NAME_TO_CODE: Record<string, string> = {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 获取当前用户
     const { data: user, error: userError } = await client

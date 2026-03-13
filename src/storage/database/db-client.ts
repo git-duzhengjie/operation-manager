@@ -1069,8 +1069,8 @@ class DatabaseClient {
 // 导出单例
 export const dbClient = new DatabaseClient();
 
-// 兼容旧代码的导出
-export function getSupabaseClient(): DatabaseClient {
+// 获取数据库客户端实例
+export function getDbClient(): DatabaseClient {
   return dbClient;
 }
 

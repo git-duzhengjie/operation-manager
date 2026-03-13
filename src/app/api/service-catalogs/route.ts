@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 格式化时间
 function formatTime(dateStr: string | null): string {
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
   const includeItems = searchParams.get('includeItems') !== 'false';
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 获取服务目录
     const { data: catalogs, error: catalogError } = await client
@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 初始化种子数据
     if (body.action === 'seed') {
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 更新服务项目
     if (body.type === 'item') {
@@ -415,7 +415,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     if (type === 'item') {
       // 删除服务项目

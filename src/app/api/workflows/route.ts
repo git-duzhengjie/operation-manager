@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 import type { WorkflowStep } from '@/storage/database/shared/schema';
 
 // 流程类型映射
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
   const isActive = searchParams.get('isActive');
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     let query = client
       .from('workflows')
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 初始化种子数据
     if (body.action === 'seed') {
@@ -284,7 +284,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 获取当前版本
     const { data: current } = await client
@@ -343,7 +343,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { error } = await client
       .from('workflows')

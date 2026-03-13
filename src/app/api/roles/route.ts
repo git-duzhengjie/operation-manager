@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 格式化时间
 function formatTime(dateStr: string | null): string {
@@ -9,7 +9,7 @@ function formatTime(dateStr: string | null): string {
 }
 
 // 格式化角色数据
-async function formatRole(role: Record<string, unknown> | null, client: ReturnType<typeof getSupabaseClient>) {
+async function formatRole(role: Record<string, unknown> | null, client: ReturnType<typeof getDbClient>) {
   if (!role) { return null; }
   // 获取角色用户数
   const { count: userCount } = await client
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
   const id = searchParams.get('id');
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     if (id) {
       // 获取单个角色详情
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { name, code, description, permissionIds } = body;
 
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { id, name, description, permissionIds } = body;
 
@@ -324,7 +324,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 检查是否为系统角色
     const { data: role } = await client

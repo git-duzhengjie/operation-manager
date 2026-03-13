@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 告警级别映射
 const levelLabels: Record<string, string> = {
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
   const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 构建基础查询条件
     let countQuery = client
@@ -285,7 +285,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 创建工单
     if (body.action === 'createTicket') {
@@ -436,7 +436,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const updateData: Record<string, unknown> = {};
     if (status) updateData.status = status;
@@ -483,7 +483,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { error } = await client
       .from('alerts')

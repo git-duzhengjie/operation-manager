@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 初始通知数据
 const seedNotifications = [
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
   const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 构建查询
     let query = client
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, id } = body;
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     if (action === 'seed') {
       // 初始化测试数据
@@ -268,7 +268,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { data, error } = await client
       .from('notifications')

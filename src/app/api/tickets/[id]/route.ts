@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 状态映射
 const statusMap: Record<string, string> = {
@@ -47,7 +47,7 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 根据工单号查询
     const { data: ticket, error } = await client

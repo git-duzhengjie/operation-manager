@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 import type { FormTemplateField } from '@/storage/database/shared/schema';
 
 // 格式化时间
@@ -37,7 +37,7 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { data, error } = await client
       .from('form_templates')
@@ -75,7 +75,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const { name, catalogId, catalogName, description, fields, isActive } = body;
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 获取当前版本
     const { data: current } = await client
@@ -127,7 +127,7 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { error } = await client
       .from('form_templates')

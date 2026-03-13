@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 内存存储（数据库不可用时的备选方案）
 const memoryStore: Record<number, {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const numericUserId = parseInt(userId, 10);
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 查询用户信息
     const { data: user, error } = await client
@@ -139,7 +139,7 @@ export async function PUT(request: NextRequest) {
       memoryStore[numericUserId].notificationSettings = { ...memoryStore[numericUserId].notificationSettings, ...data };
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     if (type === 'userInfo') {
       // 更新用户信息

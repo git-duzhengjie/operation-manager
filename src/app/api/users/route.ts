@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 角色映射
 const roleLabels: Record<string, string> = {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 构建计数查询
     let countQuery = client
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { username, email, phone, realName, role, department, position, password } = body;
 
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     const { id, username, email, phone, realName, role, department, position, isActive, twoFactorEnabled, password } = body;
 
@@ -283,7 +283,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 不允许删除 admin 用户
     const { data: user } = await client

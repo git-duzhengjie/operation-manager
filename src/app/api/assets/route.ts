@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 
 // 类型名称映射
 const typeNames: Record<string, string> = {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
   const keyword = searchParams.get('keyword');
 
   try {
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 构建查询
     let query = client
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 插入资产
     const { data, error } = await client

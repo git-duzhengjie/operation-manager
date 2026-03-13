@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/storage/database/supabase-client';
+import { getDbClient } from '@/storage/database/supabase-client';
 import bcrypt from 'bcryptjs';
 
 // POST - 用户登录
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = getSupabaseClient();
+    const client = getDbClient();
 
     // 查询用户（用户名不区分大小写）
     const { data: users, error } = await client
