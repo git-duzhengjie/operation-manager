@@ -29,8 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, Download, Server, Network, Cpu, HardDrive, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Download, Server, Network, Cpu, HardDrive, Loader2, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -42,11 +52,16 @@ interface Asset {
   typeName: string;
   model: string;
   ip: string;
+  customerId?: number;
   customer: string | null;
+  projectId?: number;
   project: string | null;
   status: string;
   statusName: string;
   location: string;
+  specifications?: Record<string, unknown>;
+  description?: string;
+  createdAt?: string;
 }
 
 interface Stats {
@@ -87,6 +102,19 @@ const projectOptions = [
   { id: 3, name: '医院信息系统', customerId: 3 },
 ];
 
+// 表单初始值
+const emptyForm = {
+  name: '',
+  type: 'server',
+  model: '',
+  ip: '',
+  customerId: '',
+  projectId: '',
+  status: 'normal',
+  location: '',
+  description: '',
+};
+
 export default function AssetsPage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -95,20 +123,17 @@ export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [stats, setStats] = useState<Stats>({ server: 0, network: 0, storage: 0, application: 0 });
   
-  // 新增资产弹窗状态
+  // 弹窗状态
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'view' | 'add' | 'edit'>('add');
   const [submitting, setSubmitting] = useState(false);
-  const [newAsset, setNewAsset] = useState({
-    name: '',
-    type: 'server',
-    model: '',
-    ip: '',
-    customerId: '',
-    projectId: '',
-    status: 'normal',
-    location: '',
-    description: '',
-  });
+  const [formData, setFormData] = useState(emptyForm);
+  const [currentAsset, setCurrentAsset] = useState<Asset | null>(null);
+  
+  // 删除确认弹窗
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 获取资产数据
   const fetchAssets = async () => {
@@ -134,7 +159,6 @@ export default function AssetsPage() {
   };
 
   useEffect(() => {
-    // 防抖搜索
     const timer = setTimeout(() => {
       fetchAssets();
     }, searchKeyword ? 300 : 0);
@@ -142,71 +166,154 @@ export default function AssetsPage() {
     return () => clearTimeout(timer);
   }, [typeFilter, statusFilter, searchKeyword]);
 
-  // 重置表单
-  const resetForm = () => {
-    setNewAsset({
-      name: '',
-      type: 'server',
-      model: '',
-      ip: '',
-      customerId: '',
-      projectId: '',
-      status: 'normal',
-      location: '',
-      description: '',
-    });
+  // 查看资产详情
+  const handleView = async (asset: Asset) => {
+    try {
+      const response = await fetch(`/api/assets/${asset.id}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setCurrentAsset(result.data);
+        setFormData({
+          name: result.data.name || '',
+          type: result.data.type || 'server',
+          model: result.data.model || '',
+          ip: result.data.ip || '',
+          customerId: result.data.customerId?.toString() || '',
+          projectId: result.data.projectId?.toString() || '',
+          status: result.data.status || 'normal',
+          location: result.data.location || '',
+          description: result.data.description || '',
+        });
+        setDialogMode('view');
+        setDialogOpen(true);
+      } else {
+        toast.error('获取资产详情失败');
+      }
+    } catch (error) {
+      console.error('Failed to fetch asset:', error);
+      toast.error('获取资产详情失败');
+    }
   };
 
   // 打开新增弹窗
-  const handleOpenDialog = () => {
-    resetForm();
+  const handleAdd = () => {
+    setFormData(emptyForm);
+    setCurrentAsset(null);
+    setDialogMode('add');
     setDialogOpen(true);
   };
 
-  // 提交新资产
+  // 打开编辑弹窗
+  const handleEdit = async (asset: Asset) => {
+    try {
+      const response = await fetch(`/api/assets/${asset.id}`);
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setCurrentAsset(result.data);
+        setFormData({
+          name: result.data.name || '',
+          type: result.data.type || 'server',
+          model: result.data.model || '',
+          ip: result.data.ip || '',
+          customerId: result.data.customerId?.toString() || '',
+          projectId: result.data.projectId?.toString() || '',
+          status: result.data.status || 'normal',
+          location: result.data.location || '',
+          description: result.data.description || '',
+        });
+        setDialogMode('edit');
+        setDialogOpen(true);
+      } else {
+        toast.error('获取资产详情失败');
+      }
+    } catch (error) {
+      console.error('Failed to fetch asset:', error);
+      toast.error('获取资产详情失败');
+    }
+  };
+
+  // 打开删除确认弹窗
+  const handleDeleteClick = (asset: Asset) => {
+    setAssetToDelete(asset);
+    setDeleteDialogOpen(true);
+  };
+
+  // 确认删除
+  const handleDeleteConfirm = async () => {
+    if (!assetToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/assets/${assetToDelete.id}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(result.message || '资产删除成功');
+        setDeleteDialogOpen(false);
+        setAssetToDelete(null);
+        fetchAssets();
+      } else {
+        toast.error(result.error || '删除失败');
+      }
+    } catch (error) {
+      console.error('Failed to delete asset:', error);
+      toast.error('删除资产失败');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // 提交表单
   const handleSubmit = async () => {
     // 验证必填项
-    if (!newAsset.name.trim()) {
+    if (!formData.name.trim()) {
       toast.error('请输入资产名称');
       return;
     }
-    if (!newAsset.type) {
+    if (!formData.type) {
       toast.error('请选择资产类型');
       return;
     }
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/assets', {
-        method: 'POST',
+      const isEdit = dialogMode === 'edit';
+      const url = isEdit ? `/api/assets/${currentAsset?.id}` : '/api/assets';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newAsset.name.trim(),
-          type: newAsset.type,
-          model: newAsset.model.trim() || null,
-          ip: newAsset.ip.trim() || null,
-          customerId: newAsset.customerId ? parseInt(newAsset.customerId) : null,
-          projectId: newAsset.projectId ? parseInt(newAsset.projectId) : null,
-          status: newAsset.status,
-          location: newAsset.location.trim() || null,
-          description: newAsset.description.trim() || null,
+          name: formData.name.trim(),
+          type: formData.type,
+          model: formData.model.trim() || null,
+          ip: formData.ip.trim() || null,
+          customerId: formData.customerId ? parseInt(formData.customerId) : null,
+          projectId: formData.projectId ? parseInt(formData.projectId) : null,
+          status: formData.status,
+          location: formData.location.trim() || null,
+          description: formData.description.trim() || null,
         }),
       });
 
       const result = await response.json();
       
       if (result.success) {
-        toast.success(result.message || '资产创建成功');
+        toast.success(result.message || (isEdit ? '资产更新成功' : '资产创建成功'));
         setDialogOpen(false);
-        resetForm();
-        // 刷新列表
         fetchAssets();
       } else {
-        toast.error(result.error || '创建失败');
+        toast.error(result.error || '操作失败');
       }
     } catch (error) {
-      console.error('Failed to create asset:', error);
-      toast.error('创建资产失败');
+      console.error('Failed to submit asset:', error);
+      toast.error('操作失败');
     } finally {
       setSubmitting(false);
     }
@@ -222,9 +329,19 @@ export default function AssetsPage() {
 
   // 根据客户筛选项目
   const filteredProjects = useMemo(() => {
-    if (!newAsset.customerId) return projectOptions;
-    return projectOptions.filter(p => p.customerId === parseInt(newAsset.customerId));
-  }, [newAsset.customerId]);
+    if (!formData.customerId) return projectOptions;
+    return projectOptions.filter(p => p.customerId === parseInt(formData.customerId));
+  }, [formData.customerId]);
+
+  // 格式化创建时间
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleString('zh-CN');
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <AppLayout>
@@ -235,7 +352,7 @@ export default function AssetsPage() {
             <h1 className="text-2xl font-bold text-gray-900">资产台账</h1>
             <p className="text-gray-600 mt-1">管理所有IT资产信息</p>
           </div>
-          <Button onClick={handleOpenDialog}>
+          <Button onClick={handleAdd}>
             <Plus className="w-4 h-4 mr-2" />
             新增资产
           </Button>
@@ -358,12 +475,33 @@ export default function AssetsPage() {
                         </TableCell>
                         <TableCell className="text-gray-600">{asset.location}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            查看
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            编辑
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleView(asset)}
+                              title="查看"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEdit(asset)}
+                              title="编辑"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteClick(asset)}
+                              title="删除"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -375,13 +513,17 @@ export default function AssetsPage() {
         </Card>
       </div>
 
-      {/* 新增资产弹窗 */}
+      {/* 查看/新增/编辑弹窗 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>新增资产</DialogTitle>
+            <DialogTitle>
+              {dialogMode === 'view' ? '资产详情' : dialogMode === 'edit' ? '编辑资产' : '新增资产'}
+            </DialogTitle>
             <DialogDescription>
-              填写资产基本信息，带 * 的为必填项
+              {dialogMode === 'view' 
+                ? '查看资产详细信息' 
+                : '填写资产基本信息，带 * 的为必填项'}
             </DialogDescription>
           </DialogHeader>
           
@@ -391,16 +533,18 @@ export default function AssetsPage() {
               <Input
                 id="name"
                 placeholder="请输入资产名称"
-                value={newAsset.name}
-                onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                disabled={dialogMode === 'view'}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="type">资产类型 *</Label>
               <Select
-                value={newAsset.type}
-                onValueChange={(value) => setNewAsset({ ...newAsset, type: value })}
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                disabled={dialogMode === 'view'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="请选择资产类型" />
@@ -419,8 +563,9 @@ export default function AssetsPage() {
               <Input
                 id="model"
                 placeholder="请输入型号"
-                value={newAsset.model}
-                onChange={(e) => setNewAsset({ ...newAsset, model: e.target.value })}
+                value={formData.model}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                disabled={dialogMode === 'view'}
               />
             </div>
             
@@ -429,16 +574,18 @@ export default function AssetsPage() {
               <Input
                 id="ip"
                 placeholder="请输入IP地址"
-                value={newAsset.ip}
-                onChange={(e) => setNewAsset({ ...newAsset, ip: e.target.value })}
+                value={formData.ip}
+                onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
+                disabled={dialogMode === 'view'}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="customer">所属客户</Label>
               <Select
-                value={newAsset.customerId}
-                onValueChange={(value) => setNewAsset({ ...newAsset, customerId: value, projectId: '' })}
+                value={formData.customerId}
+                onValueChange={(value) => setFormData({ ...formData, customerId: value, projectId: '' })}
+                disabled={dialogMode === 'view'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="请选择客户" />
@@ -456,9 +603,9 @@ export default function AssetsPage() {
             <div className="space-y-2">
               <Label htmlFor="project">所属项目</Label>
               <Select
-                value={newAsset.projectId}
-                onValueChange={(value) => setNewAsset({ ...newAsset, projectId: value })}
-                disabled={!newAsset.customerId}
+                value={formData.projectId}
+                onValueChange={(value) => setFormData({ ...formData, projectId: value })}
+                disabled={dialogMode === 'view' || !formData.customerId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="请选择项目" />
@@ -476,8 +623,9 @@ export default function AssetsPage() {
             <div className="space-y-2">
               <Label htmlFor="status">状态</Label>
               <Select
-                value={newAsset.status}
-                onValueChange={(value) => setNewAsset({ ...newAsset, status: value })}
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                disabled={dialogMode === 'view'}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="请选择状态" />
@@ -497,8 +645,9 @@ export default function AssetsPage() {
               <Input
                 id="location"
                 placeholder="请输入位置"
-                value={newAsset.location}
-                onChange={(e) => setNewAsset({ ...newAsset, location: e.target.value })}
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                disabled={dialogMode === 'view'}
               />
             </div>
             
@@ -507,24 +656,72 @@ export default function AssetsPage() {
               <Textarea
                 id="description"
                 placeholder="请输入资产描述"
-                value={newAsset.description}
-                onChange={(e) => setNewAsset({ ...newAsset, description: e.target.value })}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
+                disabled={dialogMode === 'view'}
               />
             </div>
+
+            {/* 查看模式下显示额外信息 */}
+            {dialogMode === 'view' && currentAsset && (
+              <>
+                <div className="space-y-2">
+                  <Label>资产编号</Label>
+                  <div className="text-sm font-mono text-blue-600">{currentAsset.id}</div>
+                </div>
+                <div className="space-y-2">
+                  <Label>创建时间</Label>
+                  <div className="text-sm text-gray-600">{formatDate(currentAsset.createdAt)}</div>
+                </div>
+              </>
+            )}
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              确定添加
-            </Button>
+            {dialogMode === 'view' ? (
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                关闭
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleSubmit} disabled={submitting}>
+                  {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {dialogMode === 'edit' ? '保存修改' : '确定添加'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 删除确认弹窗 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要删除资产 <span className="font-medium text-gray-900">{assetToDelete?.name}</span> 吗？
+              <br />
+              <span className="text-red-600">此操作不可恢复。</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
