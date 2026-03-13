@@ -354,7 +354,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 -- 密码: admin123 (请在生产环境中修改)
 -- ===========================================
 INSERT INTO users (username, password, real_name, email, role, is_active) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3wZXTmkHkVVHrG2FqDvC', '系统管理员', 'admin@example.com', 'admin', TRUE)
+('admin', '$2b$10$OmZAKPrYRjeTugIGBEEFHOxnLhDSvxYtXj6c.KOSw4fhceDA7rG9q', '系统管理员', 'admin@example.com', 'admin', TRUE)
 ON CONFLICT (username) DO NOTHING;
 
 -- ===========================================

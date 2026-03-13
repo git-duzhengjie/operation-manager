@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
+import bcrypt from 'bcryptjs';
 
 // POST - 用户登录
 export async function POST(request: NextRequest) {
@@ -44,13 +45,23 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证密码
-    // 注意：实际项目中应该使用 bcrypt.compare 比较加密后的密码
-    const dbPassword = user.password;
+    const dbPassword = user.password as string;
     
-    // 如果数据库密码为空，使用默认密码
-    const validPassword = dbPassword || 'admin123';
+    // 检查是否是 bcrypt 哈希密码（以 $2a$ 或 $2b$ 开头）
+    let isValidPassword = false;
     
-    if (password !== validPassword) {
+    if (dbPassword && (dbPassword.startsWith('$2a$') || dbPassword.startsWith('$2b$'))) {
+      // bcrypt 加密密码验证
+      isValidPassword = await bcrypt.compare(password, dbPassword);
+    } else if (dbPassword) {
+      // 明文密码验证
+      isValidPassword = password === dbPassword;
+    } else {
+      // 数据库密码为空，使用默认密码
+      isValidPassword = password === 'admin123';
+    }
+    
+    if (!isValidPassword) {
       return NextResponse.json(
         { success: false, error: '用户名或密码错误' },
         { status: 401 }
