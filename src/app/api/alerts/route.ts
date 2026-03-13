@@ -240,11 +240,81 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: 创建告警或初始化数据
+// POST: 创建告警或初始化数据或创建工单
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const client = getSupabaseClient();
+
+    // 创建工单
+    if (body.action === 'createTicket') {
+      const { alertId, title, type, priority, description, customerName, assetName } = body;
+
+      if (!alertId || !title) {
+        return NextResponse.json(
+          { success: false, error: '缺少告警ID或工单标题' },
+          { status: 400 }
+        );
+      }
+
+      // 生成工单号
+      const now = new Date();
+      const ticketCode = `WO${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+      // 在 tickets 表中创建工单记录
+      const { data: ticketData, error: ticketError } = await client
+        .from('tickets')
+        .insert({
+          ticket_no: ticketCode,
+          title,
+          type: type || 'incident',
+          status: 'pending',
+          priority: priority || 'medium',
+          description: description || '',
+        })
+        .select('id')
+        .single();
+
+      if (ticketError) {
+        console.error('Failed to create ticket:', ticketError);
+        // 如果创建工单失败，仍然更新告警的工单号，但不关联 ID
+      }
+
+      const ticketId = ticketData?.id;
+
+      // 更新告警记录中的工单号和工单ID
+      const updateData: Record<string, unknown> = {
+        ticket_code: ticketCode,
+        status: 'processing',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (ticketId) {
+        updateData.ticket_id = ticketId;
+      }
+
+      const { data, error } = await client
+        .from('alerts')
+        .update(updateData)
+        .eq('id', alertId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ticketCode,
+          ticketId,
+          alert: formatAlert(data),
+        },
+        message: '工单创建成功',
+      });
+    }
 
     // 初始化种子数据
     if (body.action === 'seed') {

@@ -42,6 +42,7 @@ import {
   Eye,
   XCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface Alert {
@@ -86,6 +87,7 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 };
 
 export default function MonitoringPage() {
+  const router = useRouter();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState<Stats>({ today: 0, critical: 0, pending: 0, resolved: 0 });
   const [sources, setSources] = useState<string[]>([]);
@@ -105,6 +107,16 @@ export default function MonitoringPage() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // 创建工单对话框状态
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [creatingTicketAlert, setCreatingTicketAlert] = useState<Alert | null>(null);
+  const [ticketForm, setTicketForm] = useState({
+    title: '',
+    type: 'incident',
+    priority: 'high',
+    description: '',
+  });
 
   // 获取告警列表
   const fetchAlerts = async () => {
@@ -172,11 +184,58 @@ export default function MonitoringPage() {
     }
   };
 
-  // 创建工单（模拟）
+  // 创建工单（打开对话框）
   const handleCreateTicket = (alert: Alert) => {
-    toast.success('已跳转到工单创建页面', {
-      description: `告警: ${alert.title}`,
+    setCreatingTicketAlert(alert);
+    setTicketForm({
+      title: `[告警] ${alert.title}`,
+      type: alert.level === 'critical' ? 'incident' : 'request',
+      priority: alert.level === 'critical' ? 'urgent' : alert.level === 'warning' ? 'high' : 'medium',
+      description: alert.description || `来源: ${alert.source}\n资产: ${alert.assetName}\n客户: ${alert.customerName}\n\n原始告警ID: ${alert.alertId}`,
     });
+    setTicketDialogOpen(true);
+  };
+
+  // 确认创建工单
+  const handleConfirmCreateTicket = async () => {
+    if (!creatingTicketAlert) return;
+    if (!ticketForm.title.trim()) {
+      toast.error('请输入工单标题');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createTicket',
+          alertId: creatingTicketAlert.id,
+          ...ticketForm,
+          customerName: creatingTicketAlert.customerName,
+          assetName: creatingTicketAlert.assetName,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success('工单创建成功', {
+          description: `工单号: ${result.data.ticketCode}`,
+        });
+        setTicketDialogOpen(false);
+        setCreatingTicketAlert(null);
+        fetchAlerts();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Failed to create ticket:', error);
+      toast.error('创建工单失败');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -351,7 +410,12 @@ export default function MonitoringPage() {
                       </TableCell>
                       <TableCell>
                         {alert.ticketCode ? (
-                          <Button variant="link" size="sm" className="p-0 h-auto text-blue-600">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 h-auto text-blue-600"
+                            onClick={() => router.push(`/tickets/${alert.ticketId}`)}
+                          >
                             <Link className="w-3 h-3 mr-1" />
                             {alert.ticketCode}
                           </Button>
@@ -461,7 +525,14 @@ export default function MonitoringPage() {
               {selectedAlert.ticketCode && (
                 <div>
                   <Label className="text-gray-500">关联工单</Label>
-                  <Button variant="link" className="p-0 h-auto ml-2">
+                  <Button
+                    variant="link"
+                    className="p-0 h-auto ml-2"
+                    onClick={() => {
+                      setDetailDialogOpen(false);
+                      router.push(`/tickets/${selectedAlert.ticketId}`);
+                    }}
+                  >
                     {selectedAlert.ticketCode}
                     <ExternalLink className="w-3 h-3 ml-1" />
                   </Button>
@@ -531,6 +602,97 @@ export default function MonitoringPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
               取消
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 创建工单对话框 */}
+      <Dialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>创建工单</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {creatingTicketAlert && (
+              <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium">告警信息:</span>
+                  <Badge className={levelConfig[creatingTicketAlert.level]?.bgColor + ' ' + levelConfig[creatingTicketAlert.level]?.color}>
+                    {creatingTicketAlert.levelLabel}
+                  </Badge>
+                </div>
+                <p className="text-gray-600">{creatingTicketAlert.alertId} - {creatingTicketAlert.title}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="ticketTitle">工单标题 *</Label>
+              <Input
+                id="ticketTitle"
+                value={ticketForm.title}
+                onChange={(e) => setTicketForm({ ...ticketForm, title: e.target.value })}
+                placeholder="请输入工单标题"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ticketType">工单类型</Label>
+                <Select
+                  value={ticketForm.type}
+                  onValueChange={(v) => setTicketForm({ ...ticketForm, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="incident">事件管理</SelectItem>
+                    <SelectItem value="request">请求管理</SelectItem>
+                    <SelectItem value="change">变更管理</SelectItem>
+                    <SelectItem value="problem">问题管理</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticketPriority">优先级</Label>
+                <Select
+                  value={ticketForm.priority}
+                  onValueChange={(v) => setTicketForm({ ...ticketForm, priority: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urgent">紧急</SelectItem>
+                    <SelectItem value="high">高</SelectItem>
+                    <SelectItem value="medium">中</SelectItem>
+                    <SelectItem value="low">低</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ticketDesc">工单描述</Label>
+              <Textarea
+                id="ticketDesc"
+                value={ticketForm.description}
+                onChange={(e) => setTicketForm({ ...ticketForm, description: e.target.value })}
+                placeholder="请输入工单描述"
+                rows={6}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTicketDialogOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleConfirmCreateTicket} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              创建工单
             </Button>
           </DialogFooter>
         </DialogContent>
