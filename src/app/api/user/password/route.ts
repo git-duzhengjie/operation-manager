@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 模拟当前登录用户 ID（实际应从 session 获取）
 const CURRENT_USER_ID = 1;
 
-// 内存中存储的密码（模拟，实际应该使用加密存储）
+// 内存中存储的密码（数据库不可用时的备选方案）
 let memoryPassword = 'admin123';
-
-// 检查数据库是否可用
-async function isDatabaseAvailable(): Promise<boolean> {
-  try {
-    const { db } = await import('@/db');
-    await db.execute('SELECT 1');
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 // PUT - 修改密码
 export async function PUT(request: NextRequest) {
@@ -38,10 +28,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const dbAvailable = await isDatabaseAvailable();
+    const client = getSupabaseClient();
 
-    if (!dbAvailable) {
-      // 数据库不可用，使用内存验证
+    // 查询当前用户
+    const { data: userInfo, error: queryError } = await client
+      .from('users')
+      .select('id, password')
+      .eq('id', CURRENT_USER_ID)
+      .single();
+
+    if (queryError || !userInfo) {
+      // 数据库不可用或用户不存在，使用内存验证
       if (currentPassword !== memoryPassword) {
         return NextResponse.json(
           { success: false, error: '当前密码错误' },
@@ -59,38 +56,41 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // 数据库可用，从数据库验证和更新
-    const { db, users } = await import('@/db');
-    const { eq } = await import('drizzle-orm');
-
-    // 查询当前用户
-    const userInfo = await db.select().from(users).where(eq(users.id, CURRENT_USER_ID));
+    // 从数据库验证当前密码
+    // 注意：实际项目中应该使用 bcrypt.compare 比较加密后的密码
+    // 如果密码为空，允许使用默认密码 admin123
+    const dbPassword = userInfo.password;
+    const defaultPassword = 'admin123';
     
-    if (userInfo.length === 0) {
-      return NextResponse.json(
-        { success: false, error: '用户不存在' },
-        { status: 404 }
-      );
-    }
-
-    const user = userInfo[0];
-
-    // 验证当前密码（实际应该使用 bcrypt 等加密方式验证）
-    // 这里简化处理，实际项目中应该使用 bcrypt.compare
-    if (user.password !== currentPassword && currentPassword !== 'admin123') {
+    if (dbPassword && dbPassword !== currentPassword) {
       return NextResponse.json(
         { success: false, error: '当前密码错误' },
         { status: 400 }
       );
     }
+    
+    // 如果数据库密码为空，验证默认密码
+    if (!dbPassword && currentPassword !== defaultPassword) {
+      return NextResponse.json(
+        { success: false, error: '当前密码错误，默认密码为 admin123' },
+        { status: 400 }
+      );
+    }
 
-    // 更新密码（实际应该使用 bcrypt.hash 加密后存储）
-    await db.update(users)
-      .set({
-        password: newPassword, // 实际应该存储加密后的密码
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, CURRENT_USER_ID));
+    // 更新密码
+    // 注意：实际项目中应该使用 bcrypt.hash 加密后存储
+    const { error: updateError } = await client
+      .from('users')
+      .update({ password: newPassword })
+      .eq('id', CURRENT_USER_ID);
+
+    if (updateError) {
+      console.error('Update password error:', updateError);
+      return NextResponse.json(
+        { success: false, error: '密码修改失败' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
