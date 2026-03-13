@@ -271,6 +271,37 @@ function initializeDefaultData(): void {
     notificationsStore.set(String(notif.id), notif as unknown as Record<string, unknown>);
   });
   
+  // 初始化默认客户
+  const defaultCustomers = [
+    { id: 1, name: '市财政局', code: 'FIN', contact: '李主任', phone: '138****1234', email: 'finance@gov.cn', address: '市政府大楼A座5楼', status: 'active', created_at: now, updated_at: now },
+    { id: 2, name: '市人社局', code: 'HR', contact: '王科长', phone: '139****5678', email: 'hr@gov.cn', address: '市政府大楼B座3楼', status: 'active', created_at: now, updated_at: now },
+    { id: 3, name: '市卫健委', code: 'HEALTH', contact: '张主任', phone: '137****9012', email: 'health@gov.cn', address: '市政府大楼C座8楼', status: 'active', created_at: now, updated_at: now },
+    { id: 4, name: '市教育局', code: 'EDU', contact: '赵处长', phone: '136****3456', email: 'edu@gov.cn', address: '市政府大楼A座2楼', status: 'active', created_at: now, updated_at: now },
+    { id: 5, name: '市住建局', code: 'HOUSING', contact: '刘主任', phone: '135****7890', email: 'housing@gov.cn', address: '市政府大楼D座6楼', status: 'active', created_at: now, updated_at: now },
+  ];
+  
+  const customersStore = getTableStore('customers');
+  defaultCustomers.forEach(customer => {
+    customersStore.set(String(customer.id), customer as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认项目
+  const defaultProjects = [
+    { id: 1, name: '预算管理系统', code: 'BMS', customer_id: 1, manager: '张工', status: 'active', description: '财政局预算编制与执行管理系统', created_at: now, updated_at: now },
+    { id: 2, name: '人事管理系统', code: 'HRS', customer_id: 2, manager: '李工', status: 'active', description: '人社局人事档案管理系统', created_at: now, updated_at: now },
+    { id: 3, name: '医院信息系统', code: 'HIS', customer_id: 3, manager: '王工', status: 'active', description: '卫健委医院信息管理系统', created_at: now, updated_at: now },
+    { id: 4, name: '学籍管理系统', code: 'SMS', customer_id: 4, manager: '赵工', status: 'active', description: '教育学籍信息管理系统', created_at: now, updated_at: now },
+    { id: 5, name: '房产管理系统', code: 'RMS', customer_id: 5, manager: '刘工', status: 'active', description: '住建局房产信息管理系统', created_at: now, updated_at: now },
+  ];
+  
+  const projectsStore = getTableStore('projects');
+  defaultProjects.forEach(project => {
+    projectsStore.set(String(project.id), project as unknown as Record<string, unknown>);
+  });
+  
+  // 更新 idCounter 为足够大的值，避免与初始数据冲突
+  idCounter = 1000;
+  
   console.log('[DB] Default data initialized for memory store');
 }
 
