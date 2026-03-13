@@ -162,30 +162,62 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status');
   const source = searchParams.get('source');
   const keyword = searchParams.get('keyword');
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   try {
     const client = getSupabaseClient();
 
-    let query = client
+    // 构建基础查询条件
+    let countQuery = client
+      .from('alerts')
+      .select('*', { count: 'exact', head: true });
+
+    if (level && level !== 'all') {
+      countQuery = countQuery.eq('level', level);
+    }
+    if (status && status !== 'all') {
+      countQuery = countQuery.eq('status', status);
+    }
+    if (source && source !== 'all') {
+      countQuery = countQuery.eq('source', source);
+    }
+    if (keyword) {
+      countQuery = countQuery.or(`alert_id.ilike.%${keyword}%,title.ilike.%${keyword}%,asset_name.ilike.%${keyword}%`);
+    }
+
+    // 获取总数
+    const { count, error: countError } = await countQuery;
+
+    if (countError) {
+      console.error('Supabase count error:', countError);
+      throw countError;
+    }
+
+    // 分页查询数据
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let dataQuery = client
       .from('alerts')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .range(from, to);
 
     if (level && level !== 'all') {
-      query = query.eq('level', level);
+      dataQuery = dataQuery.eq('level', level);
     }
     if (status && status !== 'all') {
-      query = query.eq('status', status);
+      dataQuery = dataQuery.eq('status', status);
     }
     if (source && source !== 'all') {
-      query = query.eq('source', source);
+      dataQuery = dataQuery.eq('source', source);
     }
     if (keyword) {
-      query = query.or(`alert_id.ilike.%${keyword}%,title.ilike.%${keyword}%,asset_name.ilike.%${keyword}%`);
+      dataQuery = dataQuery.or(`alert_id.ilike.%${keyword}%,title.ilike.%${keyword}%,asset_name.ilike.%${keyword}%`);
     }
 
-    const { data, error } = await query;
+    const { data, error } = await dataQuery;
 
     if (error) {
       console.error('Supabase query error:', error);
@@ -219,6 +251,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         alerts: (data || []).map(formatAlert),
+        pagination: {
+          page,
+          pageSize,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / pageSize),
+        },
         stats,
         sources,
         levelOptions: Object.entries(levelLabels).map(([value, label]) => ({

@@ -41,6 +41,8 @@ import {
   ExternalLink,
   Eye,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -73,6 +75,13 @@ interface Stats {
   resolved: number;
 }
 
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 const levelConfig: Record<string, { icon: typeof AlertTriangle; color: string; bgColor: string }> = {
   critical: { icon: AlertTriangle, color: 'text-red-600', bgColor: 'bg-red-100' },
   warning: { icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-100' },
@@ -90,6 +99,7 @@ export default function MonitoringPage() {
   const router = useRouter();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [stats, setStats] = useState<Stats>({ today: 0, critical: 0, pending: 0, resolved: 0 });
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, pageSize: 10, total: 0, totalPages: 0 });
   const [sources, setSources] = useState<string[]>([]);
   const [levelOptions, setLevelOptions] = useState<{ value: string; label: string }[]>([]);
   const [statusOptions, setStatusOptions] = useState<{ value: string; label: string }[]>([]);
@@ -127,6 +137,8 @@ export default function MonitoringPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       if (sourceFilter !== 'all') params.set('source', sourceFilter);
       if (searchKeyword) params.set('keyword', searchKeyword);
+      params.set('page', String(pagination.page));
+      params.set('pageSize', String(pagination.pageSize));
 
       const response = await fetch(`/api/alerts?${params.toString()}`);
       const result = await response.json();
@@ -134,6 +146,7 @@ export default function MonitoringPage() {
       if (result.success) {
         setAlerts(result.data.alerts);
         setStats(result.data.stats);
+        setPagination(result.data.pagination);
         setSources(result.data.sources);
         setLevelOptions(result.data.levelOptions);
         setStatusOptions(result.data.statusOptions);
@@ -148,6 +161,12 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     fetchAlerts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelFilter, statusFilter, sourceFilter, searchKeyword, pagination.page, pagination.pageSize]);
+
+  // 重置到第一页（筛选变化时）
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, page: 1 }));
   }, [levelFilter, statusFilter, sourceFilter, searchKeyword]);
 
   // 查看告警详情
@@ -460,6 +479,61 @@ export default function MonitoringPage() {
                 })}
               </TableBody>
             </Table>
+          )}
+
+          {/* 分页 */}
+          {pagination.total > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="text-sm text-gray-500">
+                共 {pagination.total} 条记录，第 {pagination.page} / {pagination.totalPages} 页
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                  disabled={pagination.page <= 1 || loading}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  上一页
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={pagination.page === pageNum ? 'default' : 'outline'}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
+                        disabled={loading}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                  disabled={pagination.page >= pagination.totalPages || loading}
+                >
+                  下一页
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
           )}
         </Card>
       </div>
