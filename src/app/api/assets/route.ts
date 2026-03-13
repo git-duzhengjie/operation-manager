@@ -1,174 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { assets } from '@/db/schema';
-import { eq, sql, and, or, like, desc } from 'drizzle-orm';
-
-// 内存数据回退
-const memoryAssets = [
-  {
-    id: 1,
-    assetCode: 'AST001',
-    name: '应用服务器-01',
-    type: 'server',
-    model: 'Dell PowerEdge R740',
-    ip: '192.168.1.101',
-    customerId: 1,
-    projectId: 1,
-    status: 'normal',
-    location: '机房A区-机柜01',
-    specifications: { cpu: '32核', memory: '128GB', disk: '2TB SSD' },
-    description: '预算管理系统主应用服务器',
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: 2,
-    assetCode: 'AST002',
-    name: '核心交换机-01',
-    type: 'network',
-    model: 'Cisco Catalyst 9300',
-    ip: '192.168.1.1',
-    customerId: 1,
-    projectId: 1,
-    status: 'normal',
-    location: '机房A区-机柜02',
-    specifications: { ports: '48口', speed: '10G' },
-    description: '核心网络交换机',
-    createdAt: new Date('2024-01-02'),
-  },
-  {
-    id: 3,
-    assetCode: 'AST003',
-    name: '数据库服务器-01',
-    type: 'server',
-    model: 'Huawei RH2288H V5',
-    ip: '192.168.1.102',
-    customerId: 2,
-    projectId: 2,
-    status: 'warning',
-    location: '机房B区-机柜01',
-    specifications: { cpu: '64核', memory: '256GB', disk: '4TB NVMe' },
-    description: '人事管理系统数据库服务器',
-    createdAt: new Date('2024-01-03'),
-  },
-  {
-    id: 4,
-    assetCode: 'AST004',
-    name: '应用服务器-02',
-    type: 'server',
-    model: 'Lenovo SR650',
-    ip: '192.168.1.103',
-    customerId: 3,
-    projectId: 3,
-    status: 'normal',
-    location: '机房B区-机柜02',
-    specifications: { cpu: '32核', memory: '64GB', disk: '1TB SSD' },
-    description: '医院信息系统应用服务器',
-    createdAt: new Date('2024-01-04'),
-  },
-  {
-    id: 5,
-    assetCode: 'AST005',
-    name: '存储阵列-01',
-    type: 'storage',
-    model: 'NetApp AFF A250',
-    ip: '192.168.1.200',
-    customerId: 1,
-    projectId: 1,
-    status: 'normal',
-    location: '机房A区-机柜03',
-    specifications: { capacity: '100TB', raid: 'RAID-6' },
-    description: '主存储阵列',
-    createdAt: new Date('2024-01-05'),
-  },
-  {
-    id: 6,
-    assetCode: 'AST006',
-    name: '备份服务器-01',
-    type: 'server',
-    model: 'Dell PowerEdge R640',
-    ip: '192.168.1.104',
-    customerId: null,
-    projectId: null,
-    status: 'normal',
-    location: '机房C区-机柜01',
-    specifications: { cpu: '16核', memory: '64GB', disk: '20TB HDD' },
-    description: '集中备份服务器',
-    createdAt: new Date('2024-01-06'),
-  },
-  {
-    id: 7,
-    assetCode: 'AST007',
-    name: '防火墙-01',
-    type: 'network',
-    model: 'Huawei USG6550',
-    ip: '192.168.1.254',
-    customerId: null,
-    projectId: null,
-    status: 'normal',
-    location: '机房A区-机柜01',
-    specifications: { throughput: '10Gbps', ports: '8口' },
-    description: '边界防火墙',
-    createdAt: new Date('2024-01-07'),
-  },
-  {
-    id: 8,
-    assetCode: 'AST008',
-    name: '负载均衡器-01',
-    type: 'network',
-    model: 'F5 BIG-IP i4800',
-    ip: '192.168.1.10',
-    customerId: 1,
-    projectId: 1,
-    status: 'normal',
-    location: '机房A区-机柜02',
-    specifications: { throughput: '40Gbps' },
-    description: '应用负载均衡',
-    createdAt: new Date('2024-01-08'),
-  },
-  {
-    id: 9,
-    assetCode: 'AST009',
-    name: '应用服务器-03',
-    type: 'server',
-    model: 'Dell PowerEdge R750',
-    ip: '192.168.1.105',
-    customerId: 2,
-    projectId: 2,
-    status: 'fault',
-    location: '机房B区-机柜03',
-    specifications: { cpu: '48核', memory: '128GB', disk: '2TB SSD' },
-    description: '人事管理系统应用服务器',
-    createdAt: new Date('2024-01-09'),
-  },
-  {
-    id: 10,
-    assetCode: 'AST010',
-    name: 'NAS存储-01',
-    type: 'storage',
-    model: 'Synology RS1221+',
-    ip: '192.168.1.201',
-    customerId: null,
-    projectId: null,
-    status: 'offline',
-    location: '机房C区-机柜02',
-    specifications: { capacity: '50TB', raid: 'RAID-5' },
-    description: '文件共享存储',
-    createdAt: new Date('2024-01-10'),
-  },
-];
-
-// 客户和项目名称映射
-const customerNames: Record<number, string> = {
-  1: '市财政局',
-  2: '市人社局',
-  3: '市卫健委',
-};
-
-const projectNames: Record<number, string> = {
-  1: '预算管理系统',
-  2: '人事管理系统',
-  3: '医院信息系统',
-};
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 类型名称映射
 const typeNames: Record<string, string> = {
@@ -187,6 +18,41 @@ const statusMap: Record<string, string> = {
   maintenance: '维护中',
 };
 
+// 客户和项目名称映射
+const customerNames: Record<number, string> = {
+  1: '市财政局',
+  2: '市人社局',
+  3: '市卫健委',
+};
+
+const projectNames: Record<number, string> = {
+  1: '预算管理系统',
+  2: '人事管理系统',
+  3: '医院信息系统',
+};
+
+// 格式化资产数据
+function formatAsset(row: Record<string, unknown>) {
+  return {
+    id: row.asset_code as string,
+    name: row.name as string,
+    type: row.type as string,
+    typeName: typeNames[row.type as string] || (row.type as string),
+    model: row.model as string | null,
+    ip: row.ip as string | null,
+    customerId: row.customer_id as number | null,
+    customer: row.customer_id ? customerNames[row.customer_id as number] || null : null,
+    projectId: row.project_id as number | null,
+    project: row.project_id ? projectNames[row.project_id as number] || null : null,
+    status: row.status as string,
+    statusName: statusMap[row.status as string] || (row.status as string),
+    location: row.location as string | null,
+    specifications: row.specifications as Record<string, unknown> | null,
+    description: row.description as string | null,
+    createdAt: row.created_at as string,
+  };
+}
+
 // GET: 获取资产列表和统计数据
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -195,154 +61,75 @@ export async function GET(request: NextRequest) {
   const keyword = searchParams.get('keyword');
 
   try {
-    let assetsData: Array<{
-      id: string;
-      name: string | null;
-      type: string | null;
-      typeName: string;
-      model: string | null;
-      ip: string | null;
-      customer: string | null;
-      project: string | null;
-      status: string | null;
-      statusName: string;
-      location: string | null;
-    }>;
-    let statsData: {
-      server: number;
-      network: number;
-      storage: number;
-      application: number;
-    };
-    let useFallback = false;
+    const client = getSupabaseClient();
 
-    try {
-      // 尝试从数据库获取
-      // 构建查询条件
-      const conditions = [];
-      if (type && type !== 'all') {
-        conditions.push(eq(assets.type, type));
-      }
-      if (status && status !== 'all') {
-        conditions.push(eq(assets.status, status));
-      }
+    // 构建查询
+    let query = client
+      .from('assets')
+      .select('*', { count: 'exact' });
 
-      // 查询资产列表
-      const assetList = await db
-        .select()
-        .from(assets)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(assets.createdAt));
-
-      // 关键词过滤
-      let filteredAssets = assetList;
-      if (keyword) {
-        const lowerKeyword = keyword.toLowerCase();
-        filteredAssets = assetList.filter(a => 
-          a.name?.toLowerCase().includes(lowerKeyword) ||
-          a.assetCode?.toLowerCase().includes(lowerKeyword) ||
-          a.ip?.toLowerCase().includes(lowerKeyword) ||
-          a.model?.toLowerCase().includes(lowerKeyword)
-        );
-      }
-
-      assetsData = filteredAssets.map(a => ({
-        id: a.assetCode || `AST${a.id}`,
-        name: a.name,
-        type: a.type,
-        typeName: typeNames[a.type || ''] || a.type || '未知',
-        model: a.model,
-        ip: a.ip,
-        customer: a.customerId ? customerNames[a.customerId] || '未知' : null,
-        project: a.projectId ? projectNames[a.projectId] || '未知' : null,
-        status: a.status,
-        statusName: statusMap[a.status || ''] || a.status || '未知',
-        location: a.location,
-      }));
-
-      // 统计数据
-      const typeStats = await db
-        .select({
-          type: assets.type,
-          count: sql<number>`count(*)`,
-        })
-        .from(assets)
-        .groupBy(assets.type);
-
-      statsData = {
-        server: 0,
-        network: 0,
-        storage: 0,
-        application: 0,
-      };
-
-      typeStats.forEach(s => {
-        if (s.type && s.type in statsData) {
-          statsData[s.type as keyof typeof statsData] = s.count;
-        }
-      });
-
-    } catch {
-      // 使用内存数据
-      console.log('Database not available, using memory data for assets');
-      useFallback = true;
-
-      // 过滤数据
-      let filtered = [...memoryAssets];
-      
-      if (type && type !== 'all') {
-        filtered = filtered.filter(a => a.type === type);
-      }
-      if (status && status !== 'all') {
-        filtered = filtered.filter(a => a.status === status);
-      }
-      if (keyword) {
-        const lowerKeyword = keyword.toLowerCase();
-        filtered = filtered.filter(a => 
-          a.name.toLowerCase().includes(lowerKeyword) ||
-          a.assetCode.toLowerCase().includes(lowerKeyword) ||
-          a.ip.toLowerCase().includes(lowerKeyword) ||
-          a.model.toLowerCase().includes(lowerKeyword)
-        );
-      }
-
-      assetsData = filtered.map(a => ({
-        id: a.assetCode,
-        name: a.name,
-        type: a.type,
-        typeName: typeNames[a.type] || a.type,
-        model: a.model,
-        ip: a.ip,
-        customer: a.customerId ? customerNames[a.customerId] || null : null,
-        project: a.projectId ? projectNames[a.projectId] || null : null,
-        status: a.status,
-        statusName: statusMap[a.status] || a.status,
-        location: a.location,
-      }));
-
-      // 统计数据
-      statsData = {
-        server: memoryAssets.filter(a => a.type === 'server').length,
-        network: memoryAssets.filter(a => a.type === 'network').length,
-        storage: memoryAssets.filter(a => a.type === 'storage').length,
-        application: memoryAssets.filter(a => a.type === 'application').length,
-      };
+    // 应用过滤条件
+    if (type && type !== 'all') {
+      query = query.eq('type', type);
     }
+    if (status && status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    // 排序
+    query = query.order('created_at', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
+
+    // 关键词过滤（在内存中进行，因为 Supabase 不支持多字段模糊查询）
+    let filteredData = data || [];
+    if (keyword) {
+      const lowerKeyword = keyword.toLowerCase();
+      filteredData = filteredData.filter(
+        (row) =>
+          (row.name as string)?.toLowerCase().includes(lowerKeyword) ||
+          (row.asset_code as string)?.toLowerCase().includes(lowerKeyword) ||
+          (row.ip as string)?.toLowerCase().includes(lowerKeyword) ||
+          (row.model as string)?.toLowerCase().includes(lowerKeyword)
+      );
+    }
+
+    // 格式化数据
+    const assetsData = filteredData.map(formatAsset);
+
+    // 统计数据
+    const { data: statsData } = await client
+      .from('assets')
+      .select('type');
+
+    const stats = {
+      server: statsData?.filter((r) => r.type === 'server').length || 0,
+      network: statsData?.filter((r) => r.type === 'network').length || 0,
+      storage: statsData?.filter((r) => r.type === 'storage').length || 0,
+      application: statsData?.filter((r) => r.type === 'application').length || 0,
+    };
 
     return NextResponse.json({
       success: true,
       data: {
         assets: assetsData,
-        stats: statsData,
+        stats,
       },
-      fallback: useFallback,
     });
   } catch (error) {
     console.error('Failed to fetch assets:', error);
-    return NextResponse.json({
-      success: false,
-      error: '获取资产数据失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '获取资产数据失败',
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -354,106 +141,69 @@ export async function POST(request: NextRequest) {
 
     // 验证必填字段
     if (!name || !type) {
-      return NextResponse.json({
-        success: false,
-        error: '资产名称和类型为必填项',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: '资产名称和类型为必填项',
+        },
+        { status: 400 }
+      );
     }
 
-    try {
-      // 尝试插入数据库
-      const [newAsset] = await db
-        .insert(assets)
-        .values({
-          name,
-          type,
-          model: model || null,
-          ip: ip || null,
-          customerId: customerId || null,
-          projectId: projectId || null,
-          status: status || 'normal',
-          location: location || null,
-          specifications: specifications || null,
-          description: description || null,
-        })
-        .returning();
+    const client = getSupabaseClient();
 
-      // 生成资产编号
-      const assetCode = `AST${String(newAsset.id).padStart(3, '0')}`;
-      
-      // 更新资产编号
-      await db
-        .update(assets)
-        .set({ assetCode })
-        .where(eq(assets.id, newAsset.id));
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          id: assetCode,
-          name: newAsset.name,
-          type: newAsset.type,
-          typeName: typeNames[newAsset.type || ''] || newAsset.type,
-          model: newAsset.model,
-          ip: newAsset.ip,
-          customer: customerId ? customerNames[customerId] || null : null,
-          project: projectId ? projectNames[projectId] || null : null,
-          status: newAsset.status,
-          statusName: statusMap[newAsset.status || ''] || newAsset.status,
-          location: newAsset.location,
-        },
-        message: '资产创建成功',
-      });
-    } catch {
-      // 内存回退
-      console.log('Database not available, using memory storage for new asset');
-      
-      // 生成资产编号
-      const newId = memoryAssets.length + 1;
-      const assetCode = `AST${String(newId).padStart(3, '0')}`;
-      
-      const newAsset = {
-        id: newId,
-        assetCode,
+    // 插入资产
+    const { data, error } = await client
+      .from('assets')
+      .insert({
         name,
         type,
         model: model || null,
         ip: ip || null,
-        customerId: customerId || null,
-        projectId: projectId || null,
+        customer_id: customerId || null,
+        project_id: projectId || null,
         status: status || 'normal',
         location: location || null,
         specifications: specifications || null,
         description: description || null,
-        createdAt: new Date(),
-      };
-      
-      memoryAssets.push(newAsset);
+      })
+      .select()
+      .single();
 
-      return NextResponse.json({
-        success: true,
-        data: {
-          id: assetCode,
-          name: newAsset.name,
-          type: newAsset.type,
-          typeName: typeNames[newAsset.type] || newAsset.type,
-          model: newAsset.model,
-          ip: newAsset.ip,
-          customer: customerId ? customerNames[customerId] || null : null,
-          project: projectId ? projectNames[projectId] || null : null,
-          status: newAsset.status,
-          statusName: statusMap[newAsset.status] || newAsset.status,
-          location: newAsset.location,
-        },
-        message: '资产创建成功',
-        fallback: true,
-      });
+    if (error) {
+      console.error('Supabase insert error:', error);
+      throw error;
     }
+
+    // 生成资产编号
+    const assetCode = `AST${String(data.id).padStart(3, '0')}`;
+
+    // 更新资产编号
+    const { data: updatedData, error: updateError } = await client
+      .from('assets')
+      .update({ asset_code: assetCode })
+      .eq('id', data.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Supabase update error:', updateError);
+      throw updateError;
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: formatAsset(updatedData),
+      message: '资产创建成功',
+    });
   } catch (error) {
     console.error('Failed to create asset:', error);
-    return NextResponse.json({
-      success: false,
-      error: '创建资产失败',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: '创建资产失败',
+      },
+      { status: 500 }
+    );
   }
 }
