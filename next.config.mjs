@@ -1,9 +1,5 @@
-import type { NextConfig } from 'next';
-import path from 'path';
-
-const nextConfig: NextConfig = {
-  // outputFileTracingRoot: path.resolve(__dirname, '../../'),
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: 'standalone', // Docker 部署必需
   allowedDevOrigins: ['*.dev.coze.site'],
   images: {
