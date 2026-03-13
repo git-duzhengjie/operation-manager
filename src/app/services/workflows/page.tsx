@@ -492,7 +492,7 @@ export default function WorkflowsPage() {
 
       {/* 创建/编辑流程对话框 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingWorkflow ? '编辑流程' : '新建流程'}</DialogTitle>
           </DialogHeader>
@@ -727,7 +727,7 @@ export default function WorkflowsPage() {
 
       {/* 流程详情对话框 */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{editingWorkflow?.name} - 流程步骤</DialogTitle>
           </DialogHeader>
