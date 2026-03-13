@@ -172,8 +172,8 @@ export default function KnowledgePage() {
       try {
         const response = await fetch('/api/knowledge-tags');
         if (response.ok) {
-          const data = await response.json();
-          setAvailableTags(data.tags || []);
+          const result = await response.json();
+          setAvailableTags(result.data?.tags || []);
         }
       } catch (error) {
         console.error('获取标签列表失败:', error);
