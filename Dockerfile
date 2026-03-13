@@ -3,8 +3,8 @@
 # ===========================================
 FROM node:24-alpine AS builder
 
-# Install required system packages
-RUN apk add --no-cache bash git
+# Install git (required by some packages)
+RUN apk add --no-cache git
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
