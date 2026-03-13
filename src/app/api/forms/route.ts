@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
     const stats = {
       total: statsData?.length || 0,
       active: statsData?.filter((r) => r.is_active).length || 0,
-      fieldTypes: 10, // 固定字段类型数量
+      fieldTypes: 11, // 固定字段类型数量：text, textarea, number, select, radio, checkbox, date, datetime, file, user, department
     };
 
     return NextResponse.json({

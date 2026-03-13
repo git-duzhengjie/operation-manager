@@ -670,7 +670,7 @@ export default function FormsPage() {
                           <span className="font-medium">{field.label}</span>
                           {field.required && <span className="text-red-500">*</span>}
                           <Badge variant="secondary" className="text-xs">
-                            {fieldTypeOptions.find(t => t.value === field.type)?.label}
+                            {fieldTypeOptions.find(t => t.value === field.type)?.label || field.type}
                           </Badge>
                         </div>
                         <div className="text-sm text-gray-500">
@@ -756,7 +756,9 @@ export default function FormsPage() {
                     onValueChange={(value) => setEditingField({ ...editingField, type: value as FormField['type'], options: [] })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="请选择字段类型">
+                        {fieldTypeOptions.find(t => t.value === editingField.type)?.label || editingField.type}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {fieldTypeOptions.map(opt => (
