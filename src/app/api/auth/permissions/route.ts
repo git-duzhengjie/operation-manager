@@ -1,8 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-
-// 模拟当前登录用户 ID（实际应从 session 获取）
-const CURRENT_USER_ID = 1;
 
 // 中文权限名称到英文代码的映射
 const PERMISSION_NAME_TO_CODE: Record<string, string> = {
@@ -48,15 +45,27 @@ const PERMISSION_NAME_TO_CODE: Record<string, string> = {
 };
 
 // GET - 获取当前用户权限
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // 从查询参数获取用户 ID
+    const { searchParams } = new URL(request.url);
+    const userIdParam = searchParams.get('userId');
+    const userId = userIdParam ? parseInt(userIdParam, 10) : null;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: '缺少用户 ID' },
+        { status: 400 }
+      );
+    }
+
     const client = getSupabaseClient();
 
     // 获取当前用户
     const { data: user, error: userError } = await client
       .from('users')
       .select('id, role, is_active')
-      .eq('id', CURRENT_USER_ID)
+      .eq('id', userId)
       .single();
 
     if (userError || !user) {

@@ -120,12 +120,17 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   // 从 API 获取用户权限
   const fetchPermissions = async () => {
     try {
-      const response = await fetch('/api/auth/permissions');
+      // 从 localStorage 获取用户 ID
+      const userId = localStorage.getItem('oms_user_id');
+      
+      const response = await fetch(`/api/auth/permissions${userId ? `?userId=${userId}` : ''}`);
       const result = await response.json();
       
       if (result.success && result.data) {
         setPermissions(result.data.permissions);
         setRole(result.data.role);
+        // 同步存储角色到 localStorage
+        localStorage.setItem('oms_user_role', result.data.role);
       } else {
         // 使用默认权限
         const storedRole = localStorage.getItem('oms_user_role') || 'external';
