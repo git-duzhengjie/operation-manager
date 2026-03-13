@@ -509,6 +509,30 @@ function initializeDefaultData(): void {
   // 更新 idCounter 为足够大的值，避免与初始数据冲突
   idCounter = 1000;
   
+  // 初始化默认系统日志
+  const defaultLogs = [
+    { id: 1, user: 'admin', action: '用户登录', resource: '用户管理', resource_id: null, ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 3600000).toISOString() },
+    { id: 2, user: 'zhangsan', action: '创建工单', resource: '工单管理', resource_id: 'WO20240115001', ip: '192.168.1.101', status: 'success', details: null, created_at: new Date(Date.now() - 7200000).toISOString() },
+    { id: 3, user: 'lisi', action: '导出数据', resource: '资产管理', resource_id: null, ip: '192.168.1.102', status: 'success', details: null, created_at: new Date(Date.now() - 10800000).toISOString() },
+    { id: 4, user: 'admin', action: '修改权限', resource: '角色管理', resource_id: '3', ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 14400000).toISOString() },
+    { id: 5, user: 'zhangsan', action: '登录失败', resource: '用户管理', resource_id: null, ip: '192.168.1.101', status: 'failed', details: { reason: '密码错误' }, created_at: new Date(Date.now() - 18000000).toISOString() },
+    { id: 6, user: 'admin', action: '创建用户', resource: '用户管理', resource_id: '4', ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 21600000).toISOString() },
+    { id: 7, user: 'lisi', action: '更新资产', resource: '资产管理', resource_id: 'AST-001', ip: '192.168.1.102', status: 'success', details: null, created_at: new Date(Date.now() - 25200000).toISOString() },
+    { id: 8, user: 'zhangsan', action: '查看工单', resource: '工单管理', resource_id: 'WO20240115002', ip: '192.168.1.101', status: 'success', details: null, created_at: new Date(Date.now() - 28800000).toISOString() },
+    { id: 9, user: 'admin', action: '系统配置', resource: '系统管理', resource_id: null, ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 32400000).toISOString() },
+    { id: 10, user: 'lisi', action: '删除工单', resource: '工单管理', resource_id: 'WO20240115003', ip: '192.168.1.102', status: 'success', details: null, created_at: new Date(Date.now() - 36000000).toISOString() },
+    { id: 11, user: 'zhangsan', action: '用户登出', resource: '用户管理', resource_id: null, ip: '192.168.1.101', status: 'success', details: null, created_at: new Date(Date.now() - 39600000).toISOString() },
+    { id: 12, user: 'admin', action: '导出报告', resource: '报表管理', resource_id: null, ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 43200000).toISOString() },
+    { id: 13, user: 'lisi', action: '导入资产', resource: '资产管理', resource_id: null, ip: '192.168.1.102', status: 'failed', details: { reason: '文件格式错误' }, created_at: new Date(Date.now() - 46800000).toISOString() },
+    { id: 14, user: 'admin', action: '创建知识库文章', resource: '知识库', resource_id: '1', ip: '192.168.1.100', status: 'success', details: null, created_at: new Date(Date.now() - 50400000).toISOString() },
+    { id: 15, user: 'zhangsan', action: '处理工单', resource: '工单管理', resource_id: 'WO20240115001', ip: '192.168.1.101', status: 'success', details: null, created_at: new Date(Date.now() - 54000000).toISOString() },
+  ];
+  
+  const logsStore = getTableStore('system_logs');
+  defaultLogs.forEach(log => {
+    logsStore.set(String(log.id), log as unknown as Record<string, unknown>);
+  });
+  
   console.log('[DB] Default data initialized for memory store');
 }
 
