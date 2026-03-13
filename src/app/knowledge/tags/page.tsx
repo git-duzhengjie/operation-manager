@@ -198,10 +198,30 @@ export default function KnowledgeTagsPage() {
       return;
     }
 
-    // 标签是通过文章创建的，这里只是提示用户
-    alert(`标签「${createTagName.trim()}」将在首次用于文章时自动创建`);
-    setCreateDialogOpen(false);
-    setCreateTagName('');
+    setSaving(true);
+    try {
+      const response = await fetch('/api/knowledge-tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: createTagName.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('标签创建成功');
+        setCreateDialogOpen(false);
+        setCreateTagName('');
+        fetchTags();
+      } else {
+        alert(result.error || '创建失败');
+      }
+    } catch (error) {
+      console.error('创建标签失败:', error);
+      alert('创建失败');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -347,15 +367,16 @@ export default function KnowledgeTagsPage() {
                 />
               </div>
               <p className="text-sm text-gray-500">
-                提示：标签将在首次用于文章时自动创建
+                提示：创建的标签可在撰写文章时选择使用
               </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 取消
               </Button>
-              <Button onClick={handleCreate}>
-                确定
+              <Button onClick={handleCreate} disabled={saving}>
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                创建
               </Button>
             </DialogFooter>
           </DialogContent>

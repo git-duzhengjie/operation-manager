@@ -147,6 +147,19 @@ CREATE TABLE IF NOT EXISTS knowledge_articles (
 );
 
 -- ===========================================
+-- 知识库标签表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS knowledge_tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    color VARCHAR(20),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
 -- 服务目录表
 -- ===========================================
 CREATE TABLE IF NOT EXISTS service_catalogs (
@@ -490,6 +503,20 @@ INSERT INTO knowledge_articles (title, content, type, category, tags, author_id,
 ('数据库备份恢复操作指南', '# 数据库备份恢复操作指南\n\n## 1. 备份策略\n\n### 1.1 全量备份\n- 每周日凌晨2点执行\n- 保留周期：30天\n\n### 1.2 增量备份\n- 每日凌晨2点执行\n- 保留周期：7天', 'article', '数据库管理', '{数据库,备份,恢复}', 2, 'published', 98, TRUE, NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days'),
 ('Nginx性能优化实践', '# Nginx性能优化实践\n\n## 1. 基础优化\n\n### 1.1 worker进程配置\n```nginx\nworker_processes auto;\nworker_connections 4096;\n```', 'article', '中间件管理', '{Nginx,性能优化}', 1, 'draft', 0, FALSE, NULL, NOW())
 ON CONFLICT DO NOTHING;
+
+-- ===========================================
+-- 插入默认知识库标签
+-- ===========================================
+INSERT INTO knowledge_tags (name, description, color, sort_order) VALUES
+('服务器', '服务器相关配置与管理', 'blue', 1),
+('网络', '网络设备与网络问题排查', 'green', 2),
+('数据库', '数据库管理与优化', 'purple', 3),
+('安全', '安全加固与安全事件处理', 'red', 4),
+('备份', '数据备份与恢复', 'orange', 5),
+('监控', '系统监控与告警配置', 'cyan', 6),
+('Nginx', 'Nginx配置与优化', 'indigo', 7),
+('性能优化', '系统与应用性能优化', 'pink', 8)
+ON CONFLICT (name) DO NOTHING;
 
 -- ===========================================
 -- 插入默认服务目录

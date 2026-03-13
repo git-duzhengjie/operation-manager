@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
 
     const client = getDbClient();
 
-    // 获取所有包含该标签的文章
+    // 获取所有文章
     const { data: allArticles, error: fetchError } = await client
       .from('knowledge_articles')
       .select('id, tags');
@@ -52,6 +52,17 @@ export async function PUT(request: NextRequest) {
           .update({ tags: newTags })
           .eq('id', article.id);
       }
+    }
+
+    // 更新独立存储的标签名称
+    const { error: updateError } = await client
+      .from('knowledge_tags')
+      .update({ name: newName })
+      .eq('name', oldName);
+
+    if (updateError) {
+      console.error('更新标签失败:', updateError);
+      // 不返回错误，因为文章中的标签可能已经更新成功
     }
 
     return NextResponse.json({

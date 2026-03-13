@@ -455,6 +455,23 @@ function initializeDefaultData(): void {
     auditLogsStore.set(String(log.id), log as unknown as Record<string, unknown>);
   });
   
+  // 初始化默认知识库标签
+  const defaultKnowledgeTags = [
+    { id: 1, name: '服务器', description: '服务器相关配置与管理', color: 'blue', sort_order: 1, created_at: now, updated_at: now },
+    { id: 2, name: '网络', description: '网络设备与网络问题排查', color: 'green', sort_order: 2, created_at: now, updated_at: now },
+    { id: 3, name: '数据库', description: '数据库管理与优化', color: 'purple', sort_order: 3, created_at: now, updated_at: now },
+    { id: 4, name: '安全', description: '安全加固与安全事件处理', color: 'red', sort_order: 4, created_at: now, updated_at: now },
+    { id: 5, name: '备份', description: '数据备份与恢复', color: 'orange', sort_order: 5, created_at: now, updated_at: now },
+    { id: 6, name: '监控', description: '系统监控与告警配置', color: 'cyan', sort_order: 6, created_at: now, updated_at: now },
+    { id: 7, name: 'Nginx', description: 'Nginx配置与优化', color: 'indigo', sort_order: 7, created_at: now, updated_at: now },
+    { id: 8, name: '性能优化', description: '系统与应用性能优化', color: 'pink', sort_order: 8, created_at: now, updated_at: now },
+  ];
+  
+  const knowledgeTagsStore = getTableStore('knowledge_tags');
+  defaultKnowledgeTags.forEach(tag => {
+    knowledgeTagsStore.set(String(tag.id), tag as unknown as Record<string, unknown>);
+  });
+  
   // 更新 idCounter 为足够大的值，避免与初始数据冲突
   idCounter = 1000;
   
