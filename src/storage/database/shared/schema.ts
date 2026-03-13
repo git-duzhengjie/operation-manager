@@ -141,6 +141,47 @@ export const workflows = pgTable(
   ]
 );
 
+// 服务目录表（一级分类）
+export const serviceCatalogs = pgTable(
+  "service_catalogs",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 100 }).notNull(),
+    icon: varchar("icon", { length: 10 }),
+    description: text("description"),
+    sortOrder: integer("sort_order").default(0),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("service_catalogs_active_idx").on(table.isActive),
+  ]
+);
+
+// 服务项目表（二级分类）
+export const serviceItems = pgTable(
+  "service_items",
+  {
+    id: serial("id").primaryKey(),
+    catalogId: integer("catalog_id").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    description: text("description"),
+    workflowId: integer("workflow_id"),
+    formTemplateId: integer("form_template_id"),
+    slaTime: integer("sla_time"), // SLA时间（小时）
+    sortOrder: integer("sort_order").default(0),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("service_items_catalog_idx").on(table.catalogId),
+    index("service_items_workflow_idx").on(table.workflowId),
+    index("service_items_active_idx").on(table.isActive),
+  ]
+);
+
 // TypeScript 类型
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = typeof assets.$inferInsert;
@@ -150,3 +191,7 @@ export type FormTemplate = typeof formTemplates.$inferSelect;
 export type InsertFormTemplate = typeof formTemplates.$inferInsert;
 export type Workflow = typeof workflows.$inferSelect;
 export type InsertWorkflow = typeof workflows.$inferInsert;
+export type ServiceCatalog = typeof serviceCatalogs.$inferSelect;
+export type InsertServiceCatalog = typeof serviceCatalogs.$inferInsert;
+export type ServiceItem = typeof serviceItems.$inferSelect;
+export type InsertServiceItem = typeof serviceItems.$inferInsert;
