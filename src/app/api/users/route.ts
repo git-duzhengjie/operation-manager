@@ -240,7 +240,8 @@ export async function PUT(request: NextRequest) {
     if (position !== undefined) updateData.position = position;
     if (isActive !== undefined) updateData.is_active = isActive;
     if (twoFactorEnabled !== undefined) updateData.two_factor_enabled = twoFactorEnabled;
-    if (password !== undefined) updateData.password = password;
+    // 只有密码非空时才更新密码
+    if (password && password.trim()) updateData.password = password;
 
     const { data, error } = await client
       .from('users')

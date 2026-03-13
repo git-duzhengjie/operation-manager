@@ -204,13 +204,14 @@ export default function UsersPage() {
     setSaving(true);
     try {
       if (editingUser) {
-        // 更新用户
+        // 更新用户 - 不更新密码字段
+        const { password, ...updateData } = formData;
         const response = await fetch('/api/users', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: editingUser.id,
-            ...formData,
+            ...updateData,
           }),
         });
 
