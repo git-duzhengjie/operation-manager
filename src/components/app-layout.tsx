@@ -28,7 +28,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const { userInfo } = useUser();
+  const { userInfo, logout } = useUser();
 
   const handleClearSearch = () => {
     setSearchValue('');
@@ -53,7 +53,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   // 退出登录
   const handleLogout = () => {
+    logout();
     toast.success('已退出登录');
+    router.push('/login');
   };
 
   return (

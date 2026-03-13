@@ -27,6 +27,7 @@ interface UserContextType {
   updateNotificationSettings: (settings: Partial<NotificationSettings>) => Promise<void>;
   updateAvatar: (avatar: string | null) => Promise<void>;
   refreshUserSettings: () => Promise<void>;
+  logout: () => void;
   isLoading: boolean;
 }
 
@@ -179,6 +180,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
     await updateUserInfo({ avatar });
   }, [updateUserInfo]);
 
+  // 退出登录
+  const logout = useCallback(() => {
+    // 清除 localStorage
+    localStorage.removeItem(USER_INFO_KEY);
+    localStorage.removeItem(NOTIFICATION_SETTINGS_KEY);
+    localStorage.removeItem('oms_is_logged_in');
+    // 重置状态为默认值
+    setUserInfo(defaultUserInfo);
+    setNotificationSettings(defaultNotificationSettings);
+  }, []);
+
   return (
     <UserContext.Provider
       value={{
@@ -188,6 +200,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateNotificationSettings,
         updateAvatar,
         refreshUserSettings,
+        logout,
         isLoading,
       }}
     >

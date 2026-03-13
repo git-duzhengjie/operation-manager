@@ -29,6 +29,8 @@ export default function LoginPage() {
     // 模拟验证双因素认证
     if (twoFactorCode) {
       // TODO: 实际调用2FA验证接口
+      // 存储登录状态
+      localStorage.setItem('oms_is_logged_in', 'true');
       router.push('/');
     }
   };
