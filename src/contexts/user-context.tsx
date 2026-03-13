@@ -91,8 +91,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // 从 API 获取用户设置
   const refreshUserSettings = useCallback(async () => {
+    // 从 localStorage 获取当前登录用户 ID
+    const userId = localStorage.getItem('oms_user_id');
+    
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await fetch(`/api/user/settings${userId ? `?userId=${userId}` : ''}`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -125,6 +128,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUserInfo(newInfo);
     saveToLocalStorage(newInfo, notificationSettings);
     
+    // 从 localStorage 获取当前登录用户 ID
+    const userId = localStorage.getItem('oms_user_id');
+    
     try {
       const response = await fetch('/api/user/settings', {
         method: 'PUT',
@@ -132,6 +138,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           type: 'userInfo',
           data: newInfo,
+          userId: userId,
         }),
       });
       
@@ -154,6 +161,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setNotificationSettings(newSettings);
     saveToLocalStorage(userInfo, newSettings);
     
+    // 从 localStorage 获取当前登录用户 ID
+    const userId = localStorage.getItem('oms_user_id');
+    
     try {
       const response = await fetch('/api/user/settings', {
         method: 'PUT',
@@ -161,6 +171,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           type: 'notificationSettings',
           data: newSettings,
+          userId: userId,
         }),
       });
       

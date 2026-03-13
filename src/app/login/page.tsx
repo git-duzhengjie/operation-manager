@@ -46,6 +46,17 @@ export default function LoginPage() {
       localStorage.setItem('oms_user_id', String(result.data.user.id));
       localStorage.setItem('oms_user_role', result.data.user.role);
       
+      // 存储用户信息到 UserContext 使用的 key
+      const userInfo = {
+        username: result.data.user.realName || result.data.user.username,
+        email: result.data.user.email,
+        phone: result.data.user.phone || '',
+        department: result.data.user.department || '',
+        position: result.data.user.position || '',
+        avatar: result.data.user.avatar,
+      };
+      localStorage.setItem('oms_user_info', JSON.stringify(userInfo));
+      
       toast.success('登录成功');
       router.push('/');
     } catch (error) {

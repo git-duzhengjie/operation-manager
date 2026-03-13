@@ -1,121 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// 模拟当前登录用户 ID（实际应从 session 获取）
-const CURRENT_USER_ID = 1;
+import { getSupabaseClient } from '@/storage/database/supabase-client';
 
 // 内存存储（数据库不可用时的备选方案）
-let memoryStore = {
+const memoryStore: Record<number, {
   userInfo: {
-    username: '管理员',
-    email: 'admin@gov.com',
-    phone: '138****8888',
-    department: '运维部',
-    position: '运维工程师',
-    avatar: null as string | null,
-  },
+    username: string;
+    email: string;
+    phone: string;
+    department: string;
+    position: string;
+    avatar: string | null;
+  };
   notificationSettings: {
-    emailNotify: true,
-    smsNotify: false,
-    systemNotify: true,
-    workorderNotify: true,
-    alertNotify: true,
-    knowledgeNotify: false,
-  },
-};
-
-// 检查数据库是否可用
-async function isDatabaseAvailable(): Promise<boolean> {
-  try {
-    const { db } = await import('@/db');
-    // 简单查询测试连接
-    await db.execute('SELECT 1');
-    return true;
-  } catch {
-    return false;
-  }
-}
+    emailNotify: boolean;
+    smsNotify: boolean;
+    systemNotify: boolean;
+    workorderNotify: boolean;
+    alertNotify: boolean;
+    knowledgeNotify: boolean;
+  };
+}> = {};
 
 // GET - 获取当前用户信息和设置
-export async function GET() {
-  try {
-    const dbAvailable = await isDatabaseAvailable();
-    
-    if (!dbAvailable) {
-      // 数据库不可用，返回内存中的数据
-      return NextResponse.json({
-        success: true,
-        data: {
-          userInfo: memoryStore.userInfo,
-          notificationSettings: memoryStore.notificationSettings,
-        },
-        source: 'memory', // 标识数据来源
-      });
-    }
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get('userId') || '1';
+  const numericUserId = parseInt(userId, 10);
 
-    // 数据库可用，从数据库获取
-    const { db, users, userSettings } = await import('@/db');
-    const { eq } = await import('drizzle-orm');
-    
+  try {
+    const client = getSupabaseClient();
+
     // 查询用户信息
-    const userInfo = await db.select().from(users).where(eq(users.id, CURRENT_USER_ID));
-    
-    if (userInfo.length === 0) {
-      // 如果用户不存在，创建默认用户
-      await db.insert(users).values({
-        id: CURRENT_USER_ID,
-        username: 'admin',
-        password: 'hashed_password',
-        email: 'admin@gov.com',
-        phone: '138****8888',
-        realName: '管理员',
-        role: 'admin',
-        department: '运维部',
-        position: '运维工程师',
-        avatar: null,
-      });
+    const { data: user, error } = await client
+      .from('users')
+      .select('id, username, email, phone, real_name, department, position, avatar')
+      .eq('id', numericUserId)
+      .single();
+
+    if (error || !user) {
+      // 用户不存在，返回内存数据
+      const stored = memoryStore[numericUserId];
+      if (stored) {
+        return NextResponse.json({
+          success: true,
+          data: stored,
+          source: 'memory',
+        });
+      }
+      
+      return NextResponse.json(
+        { success: false, error: '用户不存在' },
+        { status: 404 }
+      );
     }
 
     // 查询用户设置
-    let settings = await db.select().from(userSettings).where(eq(userSettings.userId, CURRENT_USER_ID));
-    
-    if (settings.length === 0) {
-      // 如果设置不存在，创建默认设置
-      await db.insert(userSettings).values({
-        userId: CURRENT_USER_ID,
-        emailNotify: true,
-        smsNotify: false,
-        systemNotify: true,
-        workorderNotify: true,
-        alertNotify: true,
-        knowledgeNotify: false,
-      });
-      settings = await db.select().from(userSettings).where(eq(userSettings.userId, CURRENT_USER_ID));
-    }
-
-    const user = userInfo[0] || {
-      username: 'admin',
-      email: 'admin@gov.com',
-      phone: '138****8888',
-      realName: '管理员',
-      department: '运维部',
-      position: '运维工程师',
-      avatar: null,
-    };
-
-    const setting = settings[0] || {
-      emailNotify: true,
-      smsNotify: false,
-      systemNotify: true,
-      workorderNotify: true,
-      alertNotify: true,
-      knowledgeNotify: false,
-    };
+    const { data: settings } = await client
+      .from('user_settings')
+      .select('*')
+      .eq('user_id', numericUserId)
+      .single();
 
     return NextResponse.json({
       success: true,
       data: {
         userInfo: {
-          username: user.realName || user.username,
+          username: user.real_name || user.username,
           email: user.email,
           phone: user.phone || '',
           department: user.department || '',
@@ -123,27 +73,33 @@ export async function GET() {
           avatar: user.avatar,
         },
         notificationSettings: {
-          emailNotify: setting.emailNotify,
-          smsNotify: setting.smsNotify,
-          systemNotify: setting.systemNotify,
-          workorderNotify: setting.workorderNotify,
-          alertNotify: setting.alertNotify,
-          knowledgeNotify: setting.knowledgeNotify,
+          emailNotify: settings?.email_notify ?? true,
+          smsNotify: settings?.sms_notify ?? false,
+          systemNotify: settings?.system_notify ?? true,
+          workorderNotify: settings?.workorder_notify ?? true,
+          alertNotify: settings?.alert_notify ?? true,
+          knowledgeNotify: settings?.knowledge_notify ?? false,
         },
       },
       source: 'database',
     });
   } catch (error) {
     console.error('获取用户设置失败:', error);
+    
     // 出错时返回内存数据
-    return NextResponse.json({
-      success: true,
-      data: {
-        userInfo: memoryStore.userInfo,
-        notificationSettings: memoryStore.notificationSettings,
-      },
-      source: 'memory',
-    });
+    const stored = memoryStore[numericUserId];
+    if (stored) {
+      return NextResponse.json({
+        success: true,
+        data: stored,
+        source: 'memory',
+      });
+    }
+    
+    return NextResponse.json(
+      { success: false, error: '获取用户设置失败' },
+      { status: 500 }
+    );
   }
 }
 
@@ -151,43 +107,62 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, data } = body;
+    const { type, data, userId } = body;
+    const numericUserId = userId ? parseInt(userId, 10) : 1;
+
+    // 初始化内存存储
+    if (!memoryStore[numericUserId]) {
+      memoryStore[numericUserId] = {
+        userInfo: {
+          username: '',
+          email: '',
+          phone: '',
+          department: '',
+          position: '',
+          avatar: null,
+        },
+        notificationSettings: {
+          emailNotify: true,
+          smsNotify: false,
+          systemNotify: true,
+          workorderNotify: true,
+          alertNotify: true,
+          knowledgeNotify: false,
+        },
+      };
+    }
 
     // 先更新内存存储（作为备份）
     if (type === 'userInfo') {
-      memoryStore.userInfo = { ...memoryStore.userInfo, ...data };
+      memoryStore[numericUserId].userInfo = { ...memoryStore[numericUserId].userInfo, ...data };
     } else if (type === 'notificationSettings') {
-      memoryStore.notificationSettings = { ...memoryStore.notificationSettings, ...data };
+      memoryStore[numericUserId].notificationSettings = { ...memoryStore[numericUserId].notificationSettings, ...data };
     }
 
-    const dbAvailable = await isDatabaseAvailable();
-    
-    if (!dbAvailable) {
-      // 数据库不可用，只更新内存
-      return NextResponse.json({ 
-        success: true, 
-        message: '设置已保存（内存模式）',
-        source: 'memory',
-      });
-    }
-
-    // 数据库可用，更新数据库
-    const { db, users, userSettings } = await import('@/db');
-    const { eq } = await import('drizzle-orm');
+    const client = getSupabaseClient();
 
     if (type === 'userInfo') {
       // 更新用户信息
-      await db.update(users)
-        .set({
-          realName: data.username,
+      const { error } = await client
+        .from('users')
+        .update({
+          real_name: data.username,
           email: data.email,
           phone: data.phone,
           department: data.department,
           position: data.position,
           avatar: data.avatar,
-          updatedAt: new Date(),
         })
-        .where(eq(users.id, CURRENT_USER_ID));
+        .eq('id', numericUserId);
+
+      if (error) {
+        console.error('Update user error:', error);
+        return NextResponse.json({ 
+          success: true, 
+          message: '设置已保存（内存模式）',
+          source: 'memory',
+        });
+      }
 
       return NextResponse.json({ 
         success: true, 
@@ -197,18 +172,40 @@ export async function PUT(request: NextRequest) {
     } 
     
     if (type === 'notificationSettings') {
-      // 更新通知设置
-      await db.update(userSettings)
-        .set({
-          emailNotify: data.emailNotify,
-          smsNotify: data.smsNotify,
-          systemNotify: data.systemNotify,
-          workorderNotify: data.workorderNotify,
-          alertNotify: data.alertNotify,
-          knowledgeNotify: data.knowledgeNotify,
-          updatedAt: new Date(),
-        })
-        .where(eq(userSettings.userId, CURRENT_USER_ID));
+      // 检查设置是否存在
+      const { data: existingSettings } = await client
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', numericUserId)
+        .single();
+
+      if (existingSettings) {
+        // 更新通知设置
+        await client
+          .from('user_settings')
+          .update({
+            email_notify: data.emailNotify,
+            sms_notify: data.smsNotify,
+            system_notify: data.systemNotify,
+            workorder_notify: data.workorderNotify,
+            alert_notify: data.alertNotify,
+            knowledge_notify: data.knowledgeNotify,
+          })
+          .eq('user_id', numericUserId);
+      } else {
+        // 创建通知设置
+        await client
+          .from('user_settings')
+          .insert({
+            user_id: numericUserId,
+            email_notify: data.emailNotify,
+            sms_notify: data.smsNotify,
+            system_notify: data.systemNotify,
+            workorder_notify: data.workorderNotify,
+            alert_notify: data.alertNotify,
+            knowledge_notify: data.knowledgeNotify,
+          });
+      }
 
       return NextResponse.json({ 
         success: true, 
