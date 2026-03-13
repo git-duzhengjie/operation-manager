@@ -423,6 +423,26 @@ INSERT INTO customers (name, code, contact_person, contact_phone, status) VALUES
 ('市教育局', 'EDU-001', '钱主任', '13800138005', 'active')
 ON CONFLICT (code) DO NOTHING;
 
+-- ===========================================
+-- 插入默认通知数据
+-- ===========================================
+INSERT INTO notifications (title, message, type, category, is_read, related_id) VALUES
+('工单已分配', '工单 WO20240101001 已分配给您处理，请及时查看并处理。该工单为服务器磁盘空间不足告警，优先级为高。', 'info', 'workorder', FALSE, 'WO20240101001'),
+('告警通知', '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。', 'warning', 'alert', FALSE, 'AST001'),
+('工单已完成', '工单 WO20240101003 已被标记为已完成，感谢您的处理。', 'success', 'workorder', TRUE, 'WO20240101003'),
+('系统升级通知', '系统将于今晚22:00进行升级维护，预计维护时长1小时，届时系统将暂停服务。', 'info', 'system', TRUE, NULL),
+('知识库更新', '有3篇新文章被添加到知识库：《服务器安全加固指南》、《常见网络问题解决方案》、《系统监控配置手册》。', 'success', 'knowledge', TRUE, NULL),
+('资产到期提醒', '资产 AST001（应用服务器-01）的维保合同将于7天后到期，请及时续保。', 'warning', 'asset', FALSE, 'AST001'),
+('巡检任务完成', '本周例行巡检任务已完成，共检查设备45台，发现异常3项，已生成巡检报告。', 'success', 'routine', TRUE, NULL),
+('新工单待审批', '您有2个变更申请等待审批，请及时处理。', 'info', 'workorder', TRUE, NULL),
+('告警已恢复', '服务器 AST002 内存使用率已恢复正常，当前使用率为75%。', 'success', 'alert', FALSE, 'AST002'),
+('资产入库通知', '新资产「数据库服务器-03」已入库，资产编号：AST-2024-0056，请及时进行资产登记。', 'info', 'asset', FALSE, 'AST-2024-0056'),
+('工单超时提醒', '工单 WO20240101005 已超过处理时限，请尽快处理或申请延期。', 'warning', 'workorder', FALSE, 'WO20240101005'),
+('密码即将过期', '您的账户密码将于3天后过期，请及时修改密码。', 'warning', 'system', TRUE, NULL),
+('月度报告已生成', '2024年1月运维月度报告已生成，请前往「例行工作」模块查看。', 'info', 'routine', TRUE, NULL),
+('知识库审批通过', '您提交的文章《Nginx性能优化实践》已审核通过并发布。', 'success', 'knowledge', TRUE, NULL),
+('服务目录更新', '服务目录「基础运维服务」已更新，新增了2个服务项目，请查看。', 'info', 'system', FALSE, NULL);
+
 -- 完成提示
 DO $$
 BEGIN
