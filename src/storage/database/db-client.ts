@@ -6,6 +6,23 @@ let pool: Pool | null = null;
 let useMemoryStore = false;
 let connectionTested = false;
 
+// ==========================================
+// 内存存储
+// ==========================================
+const memoryStore: Map<string, Map<string, Record<string, unknown>>> = new Map();
+let idCounter = 1;
+
+function getTableStore(table: string): Map<string, Record<string, unknown>> {
+  if (!memoryStore.has(table)) {
+    memoryStore.set(table, new Map());
+  }
+  return memoryStore.get(table)!;
+}
+
+function generateId(): number {
+  return idCounter++;
+}
+
 // 加载环境变量
 function loadEnv(): void {
   if (envLoaded || process.env.DATABASE_URL) {
@@ -79,6 +96,8 @@ async function testConnection(): Promise<boolean> {
     console.log('[DB] No DATABASE_URL found, using memory store');
     useMemoryStore = true;
     connectionTested = true;
+    // 初始化默认数据
+    initializeDefaultData();
     return false;
   }
 
@@ -115,8 +134,144 @@ async function testConnection(): Promise<boolean> {
       pool = null;
     }
     
+    // 初始化默认数据
+    initializeDefaultData();
     return false;
   }
+}
+
+// 初始化默认数据（内存存储模式）
+function initializeDefaultData(): void {
+  const now = new Date().toISOString();
+  
+  // 初始化默认管理员用户
+  // 密码: admin123 (实际项目中应使用 bcrypt 加密)
+  const defaultUsers = [
+    {
+      id: 1,
+      username: 'admin',
+      password: 'admin123',
+      real_name: '系统管理员',
+      email: 'admin@example.com',
+      phone: '13800138000',
+      role: 'admin',
+      department: '信息技术部',
+      position: '系统管理员',
+      avatar: null,
+      two_factor_enabled: false,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 2,
+      username: 'zhangsan',
+      password: '123456',
+      real_name: '张三',
+      email: 'zhangsan@example.com',
+      phone: '13800138001',
+      role: 'internal',
+      department: '运维部',
+      position: '运维工程师',
+      avatar: null,
+      two_factor_enabled: false,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 3,
+      username: 'lisi',
+      password: '123456',
+      real_name: '李四',
+      email: 'lisi@example.com',
+      phone: '13800138002',
+      role: 'internal',
+      department: '运维部',
+      position: '运维工程师',
+      avatar: null,
+      two_factor_enabled: false,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+  
+  const usersStore = getTableStore('users');
+  defaultUsers.forEach(user => {
+    usersStore.set(String(user.id), user as unknown as Record<string, unknown>);
+  });
+  idCounter = 4;
+  
+  // 初始化默认角色
+  const defaultRoles = [
+    { id: 1, name: '管理员', code: 'admin', description: '系统管理员，拥有所有权限', is_system: true, created_at: now },
+    { id: 2, name: '内部人员', code: 'internal', description: '内部工作人员，拥有常规操作权限', is_system: true, created_at: now },
+    { id: 3, name: '外部人员', code: 'external', description: '外部用户，拥有基本查看权限', is_system: true, created_at: now },
+  ];
+  
+  const rolesStore = getTableStore('roles');
+  defaultRoles.forEach(role => {
+    rolesStore.set(String(role.id), role as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认权限
+  const defaultPermissions = [
+    { id: 1, name: '查看工单', code: 'ticket_view', category: '工单管理' },
+    { id: 2, name: '创建工单', code: 'ticket_create', category: '工单管理' },
+    { id: 3, name: '编辑工单', code: 'ticket_edit', category: '工单管理' },
+    { id: 4, name: '删除工单', code: 'ticket_delete', category: '工单管理' },
+    { id: 5, name: '处理工单', code: 'ticket_process', category: '工单管理' },
+    { id: 6, name: '查看资产', code: 'asset_view', category: '资产管理' },
+    { id: 7, name: '创建资产', code: 'asset_create', category: '资产管理' },
+    { id: 8, name: '编辑资产', code: 'asset_edit', category: '资产管理' },
+    { id: 9, name: '删除资产', code: 'asset_delete', category: '资产管理' },
+    { id: 10, name: '查看知识库', code: 'knowledge_view', category: '知识库管理' },
+    { id: 11, name: '创建文章', code: 'knowledge_create', category: '知识库管理' },
+    { id: 12, name: '编辑文章', code: 'knowledge_edit', category: '知识库管理' },
+    { id: 13, name: '删除文章', code: 'knowledge_delete', category: '知识库管理' },
+    { id: 14, name: '查看监控', code: 'monitor_view', category: '监控管理' },
+    { id: 15, name: '配置监控', code: 'monitor_config', category: '监控管理' },
+    { id: 16, name: '处理告警', code: 'alert_handle', category: '监控管理' },
+    { id: 17, name: '查看用户', code: 'user_view', category: '用户管理' },
+    { id: 18, name: '创建用户', code: 'user_create', category: '用户管理' },
+    { id: 19, name: '编辑用户', code: 'user_edit', category: '用户管理' },
+    { id: 20, name: '删除用户', code: 'user_delete', category: '用户管理' },
+    { id: 21, name: '系统配置', code: 'system_config', category: '系统管理' },
+    { id: 22, name: '查看日志', code: 'log_view', category: '系统管理' },
+    { id: 23, name: '查看角色', code: 'role_view', category: '角色管理' },
+    { id: 24, name: '编辑角色', code: 'role_edit', category: '角色管理' },
+  ];
+  
+  const permissionsStore = getTableStore('permissions');
+  defaultPermissions.forEach(perm => {
+    permissionsStore.set(String(perm.id), perm as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化角色权限关联（管理员拥有所有权限）
+  const rolePermsStore = getTableStore('role_permissions');
+  defaultPermissions.forEach((perm, index) => {
+    rolePermsStore.set(String(index + 1), {
+      id: index + 1,
+      role_id: 1,
+      permission_id: perm.id,
+      created_at: now,
+    } as unknown as Record<string, unknown>);
+  });
+  
+  // 初始化默认通知
+  const defaultNotifications = [
+    { id: 1, title: '工单已分配', message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。', type: 'info', category: 'workorder', is_read: false, related_id: 'WO20240101001', created_at: now },
+    { id: 2, title: '告警通知', message: '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。', type: 'warning', category: 'alert', is_read: false, related_id: 'AST001', created_at: now },
+    { id: 3, title: '工单已完成', message: '工单 WO20240101003 已被标记为已完成，感谢您的处理。', type: 'success', category: 'workorder', is_read: true, related_id: 'WO20240101003', created_at: now },
+  ];
+  
+  const notificationsStore = getTableStore('notifications');
+  defaultNotifications.forEach(notif => {
+    notificationsStore.set(String(notif.id), notif as unknown as Record<string, unknown>);
+  });
+  
+  console.log('[DB] Default data initialized for memory store');
 }
 
 // 获取数据库连接池
@@ -146,23 +301,6 @@ function getPool(): Pool | null {
 // 导出检查函数
 export function isUsingMemoryStore(): boolean {
   return useMemoryStore;
-}
-
-// ==========================================
-// 内存存储
-// ==========================================
-const memoryStore: Map<string, Map<string, Record<string, unknown>>> = new Map();
-let idCounter = 1;
-
-function getTableStore(table: string): Map<string, Record<string, unknown>> {
-  if (!memoryStore.has(table)) {
-    memoryStore.set(table, new Map());
-  }
-  return memoryStore.get(table)!;
-}
-
-function generateId(): number {
-  return idCounter++;
 }
 
 // ==========================================
