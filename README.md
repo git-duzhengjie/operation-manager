@@ -273,9 +273,129 @@ pnpm start
 pnpm ts-check
 ```
 
-## 部署说明
+## Docker 部署
 
-本项目使用 `.coze` 配置文件管理部署：
+### 方式一：一键部署（推荐）
+
+使用 Docker Compose 一键启动完整服务栈（应用 + PostgreSQL 数据库）：
+
+```bash
+# 1. 复制环境变量配置
+cp .env.example .env
+
+# 2. 编辑 .env 文件，填入必要的配置
+vim .env
+
+# 3. 一键启动所有服务
+docker-compose up -d
+
+# 4. 查看服务状态
+docker-compose ps
+
+# 5. 查看日志
+docker-compose logs -f app
+```
+
+服务启动后访问：http://localhost:5000
+
+默认管理员账户：`admin` / `admin123`（请在生产环境中修改）
+
+### 方式二：仅构建镜像
+
+如果已有数据库，可单独构建应用镜像：
+
+```bash
+# 构建镜像
+docker build -t ops-platform:latest .
+
+# 运行容器
+docker run -d \
+  --name ops-platform \
+  -p 5000:5000 \
+  -e DATABASE_URL=postgresql://user:password@host:5432/ops_platform \
+  -e NODE_ENV=production \
+  ops-platform:latest
+```
+
+### 方式三：使用预构建镜像
+
+```bash
+# 拉取镜像（如果已推送到镜像仓库）
+docker pull your-registry/ops-platform:latest
+
+# 运行容器
+docker run -d \
+  --name ops-platform \
+  -p 5000:5000 \
+  --env-file .env \
+  your-registry/ops-platform:latest
+```
+
+### Docker Compose 服务说明
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| app | 5000 | 运维管理平台应用 |
+| db | 5432 | PostgreSQL 数据库 |
+
+### 常用命令
+
+```bash
+# 启动服务
+docker-compose up -d
+
+# 停止服务
+docker-compose down
+
+# 重启服务
+docker-compose restart
+
+# 查看日志
+docker-compose logs -f
+
+# 进入应用容器
+docker-compose exec app sh
+
+# 进入数据库容器
+docker-compose exec db psql -U postgres -d ops_platform
+
+# 备份数据库
+docker-compose exec db pg_dump -U postgres ops_platform > backup.sql
+
+# 恢复数据库
+cat backup.sql | docker-compose exec -T db psql -U postgres ops_platform
+```
+
+### 生产环境建议
+
+1. **修改默认密码**：修改数据库密码和管理员密码
+2. **配置 HTTPS**：使用 Nginx 反向代理并配置 SSL 证书
+3. **数据持久化**：确保 `postgres_data` 卷正确挂载
+4. **资源限制**：在 docker-compose.yml 中添加资源限制
+5. **日志收集**：配置日志驱动收集容器日志
+
+```yaml
+# 生产环境 docker-compose.override.yml 示例
+services:
+  app:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+## 传统部署
+
+本项目也支持传统部署方式，使用 `.coze` 配置文件管理：
 
 ```toml
 [project]

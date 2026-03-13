@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # ===========================================
+  # 运维管理平台应用
+  # ===========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ops-platform:latest
+    container_name: ops-platform
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # 数据库配置
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/ops_platform}
+      # Supabase 配置（可选）
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+      # AI 配置
+      - COZE_API_KEY=${COZE_API_KEY:-}
+      - COZE_BOT_ID=${COZE_BOT_ID:-}
+      # Zabbix 配置（可选）
+      - NEXT_PUBLIC_ZABBIX_URL=${NEXT_PUBLIC_ZABBIX_URL:-}
+      - ZABBIX_USER=${ZABBIX_USER:-}
+      - ZABBIX_PASSWORD=${ZABBIX_PASSWORD:-}
+      # Node 环境
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ops-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================
+  # PostgreSQL 数据库
+  # ===========================================
+  db:
+    image: postgres:16-alpine
+    container_name: ops-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-ops_platform}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - ops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ops_platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================
+  # Redis 缓存（可选，用于会话存储）
+  # ===========================================
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: ops-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - ops-network
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+
+networks:
+  ops-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  # redis_data:
+  #   driver: local
