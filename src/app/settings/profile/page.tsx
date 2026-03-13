@@ -354,7 +354,7 @@ export default function SettingsPage() {
                       <Input
                         type={showPassword ? 'text' : 'password'}
                         value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value.trim() })}
                         placeholder="请输入当前密码"
                       />
                       <button
@@ -371,7 +371,7 @@ export default function SettingsPage() {
                     <Input
                       type="password"
                       value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value.trim() })}
                       placeholder="请输入新密码（至少6位）"
                     />
                   </div>
@@ -380,9 +380,15 @@ export default function SettingsPage() {
                     <Input
                       type="password"
                       value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value.trim() })}
                       placeholder="请再次输入新密码"
                     />
+                    {passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
+                      <p className="text-sm text-red-500">两次输入的密码不一致</p>
+                    )}
+                    {passwordForm.confirmPassword && passwordForm.newPassword === passwordForm.confirmPassword && (
+                      <p className="text-sm text-green-500">密码输入一致</p>
+                    )}
                   </div>
                   <div className="flex justify-end">
                     <Button onClick={handleChangePassword} disabled={changingPassword}>
