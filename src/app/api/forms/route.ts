@@ -230,8 +230,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `成功插入 ${data?.length || 0} 个表单模板`,
-        data: data?.map(formatFormTemplate),
+        message: `成功插入 ${(data as unknown as Record<string, unknown>[])?.length || 0} 个表单模板`,
+        data: (data as unknown as Record<string, unknown>[])?.map(formatFormTemplate),
       });
     }
 

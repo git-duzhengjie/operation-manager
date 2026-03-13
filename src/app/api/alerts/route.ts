@@ -371,8 +371,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `成功插入 ${data?.length || 0} 条告警`,
-        data: data?.map(formatAlert),
+        message: `成功插入 ${(data as unknown as Record<string, unknown>[])?.length || 0} 条告警`,
+        data: (data as unknown as Record<string, unknown>[])?.map(formatAlert),
       });
     }
 

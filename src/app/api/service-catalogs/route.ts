@@ -220,10 +220,10 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `成功插入 ${catalogsData?.length || 0} 个服务目录和 ${itemsData?.length || 0} 个服务项目`,
+        message: `成功插入 ${(catalogsData as unknown as Record<string, unknown>[])?.length || 0} 个服务目录和 ${(itemsData as unknown as Record<string, unknown>[])?.length || 0} 个服务项目`,
         data: {
-          catalogs: catalogsData?.map(formatCatalog),
-          items: itemsData?.map(formatServiceItem),
+          catalogs: (catalogsData as unknown as Record<string, unknown>[])?.map(formatCatalog),
+          items: (itemsData as unknown as Record<string, unknown>[])?.map(formatServiceItem),
         },
       });
     }

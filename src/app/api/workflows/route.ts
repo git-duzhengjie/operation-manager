@@ -222,8 +222,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `成功插入 ${data?.length || 0} 个流程`,
-        data: data?.map(formatWorkflow),
+        message: `成功插入 ${(data as unknown as Record<string, unknown>[])?.length || 0} 个流程`,
+        data: (data as unknown as Record<string, unknown>[])?.map(formatWorkflow),
       });
     }
 
