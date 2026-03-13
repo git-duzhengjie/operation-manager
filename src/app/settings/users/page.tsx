@@ -43,6 +43,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -392,8 +393,16 @@ export default function UsersPage() {
                   placeholder="搜索用户名、姓名、邮箱..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10"
                 />
+                {searchKeyword && (
+                  <button
+                    onClick={() => setSearchKeyword('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-32">
