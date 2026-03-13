@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ZabbixDashboard } from '@/components/zabbix-dashboard';
 import {
   Search,
   AlertTriangle,
@@ -43,6 +45,8 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  Activity,
+  Database,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -263,58 +267,78 @@ export default function MonitoringPage() {
         {/* 页面标题 */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">监控告警</h1>
-          <p className="text-gray-600 mt-1">接收和管理监控系统推送的告警</p>
+          <p className="text-gray-600 mt-1">实时监控和告警管理</p>
         </div>
 
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">今日告警</p>
-                  <p className="text-2xl font-bold mt-1">{stats.today}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">严重告警</p>
-                  <p className="text-2xl font-bold mt-1">{stats.critical}</p>
-                </div>
-                <div className="p-2 bg-red-100 rounded-full">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">待处理</p>
-                  <p className="text-2xl font-bold mt-1">{stats.pending}</p>
-                </div>
-                <AlertCircle className="w-8 h-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">已解决</p>
-                  <p className="text-2xl font-bold mt-1">{stats.resolved}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Tab 切换 */}
+        <Tabs defaultValue="zabbix" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="zabbix" className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Zabbix 实时监控
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              本地告警记录
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Zabbix 实时监控 */}
+          <TabsContent value="zabbix" className="mt-6">
+            <ZabbixDashboard />
+          </TabsContent>
+
+          {/* 本地告警记录 */}
+          <TabsContent value="alerts" className="mt-6 space-y-6">
+            {/* 统计卡片 */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">今日告警</p>
+                      <p className="text-2xl font-bold mt-1">{stats.today}</p>
+                    </div>
+                    <AlertTriangle className="w-8 h-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">严重告警</p>
+                      <p className="text-2xl font-bold mt-1">{stats.critical}</p>
+                    </div>
+                    <div className="p-2 bg-red-100 rounded-full">
+                      <AlertTriangle className="w-6 h-6 text-red-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">待处理</p>
+                      <p className="text-2xl font-bold mt-1">{stats.pending}</p>
+                    </div>
+                    <AlertCircle className="w-8 h-8 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">已解决</p>
+                      <p className="text-2xl font-bold mt-1">{stats.resolved}</p>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
         {/* 搜索和筛选 */}
         <Card>
@@ -536,7 +560,6 @@ export default function MonitoringPage() {
             </div>
           )}
         </Card>
-      </div>
 
       {/* 告警详情对话框 */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
@@ -771,6 +794,9 @@ export default function MonitoringPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+          </TabsContent>
+        </Tabs>
+      </div>
     </AppLayout>
   );
 }
