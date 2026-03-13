@@ -3,6 +3,9 @@
 # ===========================================
 FROM node:24-alpine AS deps
 
+# Install git (required by some packages)
+RUN apk add --no-cache git
+
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
@@ -18,6 +21,9 @@ RUN pnpm install --frozen-lockfile --prefer-offline
 # Stage 2: Builder
 # ===========================================
 FROM node:24-alpine AS builder
+
+# Install bash (required by build scripts)
+RUN apk add --no-cache bash git
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
