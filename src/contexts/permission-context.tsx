@@ -117,8 +117,48 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // 从 API 获取用户权限
-  const fetchPermissions = async () => {
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        // 从 localStorage 获取用户 ID
+        const userId = localStorage.getItem('oms_user_id');
+        
+        const response = await fetch(`/api/auth/permissions${userId ? `?userId=${userId}` : ''}`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setPermissions(result.data.permissions);
+          setRole(result.data.role);
+          // 同步存储角色到 localStorage
+          localStorage.setItem('oms_user_role', result.data.role);
+        } else {
+          // 使用默认权限
+          const storedRole = localStorage.getItem('oms_user_role') || 'external';
+          setRole(storedRole);
+          setPermissions(DEFAULT_ROLE_PERMISSIONS[storedRole] || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch permissions:', error);
+        // 使用默认权限
+        const storedRole = localStorage.getItem('oms_user_role') || 'external';
+        setRole(storedRole);
+        setPermissions(DEFAULT_ROLE_PERMISSIONS[storedRole] || []);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const isLoggedIn = localStorage.getItem('oms_is_logged_in');
+    if (isLoggedIn === 'true') {
+      fetchPermissions();
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 手动刷新权限（用于登录后刷新）
+  const refreshPermissions = async () => {
+    setIsLoading(true);
     try {
       // 从 localStorage 获取用户 ID
       const userId = localStorage.getItem('oms_user_id');
@@ -129,17 +169,14 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       if (result.success && result.data) {
         setPermissions(result.data.permissions);
         setRole(result.data.role);
-        // 同步存储角色到 localStorage
         localStorage.setItem('oms_user_role', result.data.role);
       } else {
-        // 使用默认权限
         const storedRole = localStorage.getItem('oms_user_role') || 'external';
         setRole(storedRole);
         setPermissions(DEFAULT_ROLE_PERMISSIONS[storedRole] || []);
       }
     } catch (error) {
-      console.error('Failed to fetch permissions:', error);
-      // 使用默认权限
+      console.error('Failed to refresh permissions:', error);
       const storedRole = localStorage.getItem('oms_user_role') || 'external';
       setRole(storedRole);
       setPermissions(DEFAULT_ROLE_PERMISSIONS[storedRole] || []);
@@ -147,15 +184,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem('oms_is_logged_in');
-    if (isLoggedIn === 'true') {
-      fetchPermissions();
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
 
   // 检查是否拥有某个权限
   const hasPermission = (permission: Permission): boolean => {
@@ -191,7 +219,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         hasAnyPermission,
         hasAllPermissions,
         canAccessMenu,
-        refreshPermissions: fetchPermissions,
+        refreshPermissions: refreshPermissions,
       }}
     >
       {children}
