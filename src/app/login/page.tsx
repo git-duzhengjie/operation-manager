@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Shield, User, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { usePermissions } from '@/contexts/permission-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshPermissions } = usePermissions();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,6 +58,9 @@ export default function LoginPage() {
         avatar: result.data.user.avatar,
       };
       localStorage.setItem('oms_user_info', JSON.stringify(userInfo));
+      
+      // 刷新权限
+      await refreshPermissions();
       
       toast.success('登录成功');
       router.push('/');
