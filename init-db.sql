@@ -11,14 +11,16 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    name VARCHAR(100),
+    real_name VARCHAR(100),
     email VARCHAR(100),
     phone VARCHAR(20),
     role VARCHAR(20) DEFAULT 'external' CHECK (role IN ('admin', 'internal', 'external')),
-    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'locked')),
-    avatar_url TEXT,
+    department VARCHAR(100),
+    position VARCHAR(100),
+    avatar TEXT,
     two_factor_enabled BOOLEAN DEFAULT FALSE,
     two_factor_secret VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
     last_login_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -67,11 +69,12 @@ CREATE TABLE IF NOT EXISTS assets (
     brand VARCHAR(50),
     model VARCHAR(100),
     serial_number VARCHAR(100),
-    ip_address VARCHAR(50),
+    ip VARCHAR(50),
     location VARCHAR(200),
     customer_id INTEGER REFERENCES customers(id),
     project_id INTEGER REFERENCES projects(id),
-    status VARCHAR(20) DEFAULT 'active',
+    status VARCHAR(20) DEFAULT 'normal',
+    description TEXT,
     purchase_date DATE,
     warranty_end_date DATE,
     specifications JSONB,
@@ -90,10 +93,13 @@ CREATE TABLE IF NOT EXISTS tickets (
     status VARCHAR(50) DEFAULT 'pending',
     priority VARCHAR(20) DEFAULT 'medium',
     customer_id INTEGER REFERENCES customers(id),
+    customer_name VARCHAR(100),
     project_id INTEGER REFERENCES projects(id),
+    project_name VARCHAR(100),
     asset_id INTEGER REFERENCES assets(id),
     reporter_id INTEGER REFERENCES users(id),
     assignee_id INTEGER REFERENCES users(id),
+    assignee_name VARCHAR(100),
     description TEXT,
     resolution TEXT,
     due_date TIMESTAMP,
@@ -117,6 +123,7 @@ CREATE TABLE IF NOT EXISTS ticket_history (
     to_assignee_id INTEGER REFERENCES users(id),
     comment TEXT,
     operator_id INTEGER REFERENCES users(id),
+    operator_name VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -146,11 +153,26 @@ CREATE TABLE IF NOT EXISTS service_catalogs (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    category VARCHAR(50),
-    parent_id INTEGER REFERENCES service_catalogs(id),
     icon VARCHAR(50),
     sort_order INTEGER DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'active',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
+-- 服务项目表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS service_items (
+    id SERIAL PRIMARY KEY,
+    catalog_id INTEGER REFERENCES service_catalogs(id),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    workflow_id INTEGER,
+    form_template_id INTEGER,
+    sla_time INTEGER,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -162,11 +184,12 @@ CREATE TABLE IF NOT EXISTS workflows (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     type VARCHAR(50),
+    catalog_id INTEGER,
+    catalog_name VARCHAR(100),
     description TEXT,
-    definition JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'active',
+    steps JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
     version INTEGER DEFAULT 1,
-    created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -177,11 +200,12 @@ CREATE TABLE IF NOT EXISTS workflows (
 CREATE TABLE IF NOT EXISTS form_templates (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
+    catalog_id INTEGER,
+    catalog_name VARCHAR(100),
     description TEXT,
     fields JSONB NOT NULL,
-    category VARCHAR(50),
-    status VARCHAR(20) DEFAULT 'active',
-    created_by INTEGER REFERENCES users(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    version INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -247,12 +271,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- ===========================================
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) NOT NULL,
+    user_id INTEGER,
     type VARCHAR(50) NOT NULL,
+    category VARCHAR(50),
     title VARCHAR(200) NOT NULL,
-    content TEXT,
+    message TEXT,
     is_read BOOLEAN DEFAULT FALSE,
-    link VARCHAR(255),
+    related_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -270,6 +295,41 @@ CREATE TABLE IF NOT EXISTS user_settings (
     settings JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
+-- 角色表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    is_system BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
+-- 权限表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    category VARCHAR(50),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ===========================================
+-- 角色权限关联表
+-- ===========================================
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id SERIAL PRIMARY KEY,
+    role_id INTEGER REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id INTEGER REFERENCES permissions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(role_id, permission_id)
 );
 
 -- ===========================================
@@ -293,9 +353,61 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 -- 插入默认管理员账户
 -- 密码: admin123 (请在生产环境中修改)
 -- ===========================================
-INSERT INTO users (username, password, name, email, role, status) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3wZXTmkHkVVHrG2FqDvC', '系统管理员', 'admin@example.com', 'admin', 'active')
+INSERT INTO users (username, password, real_name, email, role, is_active) VALUES
+('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZRGdjGj/n3wZXTmkHkVVHrG2FqDvC', '系统管理员', 'admin@example.com', 'admin', TRUE)
 ON CONFLICT (username) DO NOTHING;
+
+-- ===========================================
+-- 插入默认角色
+-- ===========================================
+INSERT INTO roles (name, code, description, is_system) VALUES
+('管理员', 'admin', '系统管理员，拥有所有权限', TRUE),
+('内部人员', 'internal', '内部工作人员，拥有常规操作权限', TRUE),
+('外部人员', 'external', '外部用户，拥有基本查看权限', TRUE)
+ON CONFLICT (code) DO NOTHING;
+
+-- ===========================================
+-- 插入默认权限
+-- ===========================================
+INSERT INTO permissions (name, code, category) VALUES
+-- 工单权限
+('查看工单', 'ticket_view', '工单管理'),
+('创建工单', 'ticket_create', '工单管理'),
+('编辑工单', 'ticket_edit', '工单管理'),
+('删除工单', 'ticket_delete', '工单管理'),
+('处理工单', 'ticket_process', '工单管理'),
+-- 资产权限
+('查看资产', 'asset_view', '资产管理'),
+('创建资产', 'asset_create', '资产管理'),
+('编辑资产', 'asset_edit', '资产管理'),
+('删除资产', 'asset_delete', '资产管理'),
+-- 知识库权限
+('查看知识库', 'knowledge_view', '知识库管理'),
+('创建文章', 'knowledge_create', '知识库管理'),
+('编辑文章', 'knowledge_edit', '知识库管理'),
+('删除文章', 'knowledge_delete', '知识库管理'),
+-- 监控权限
+('查看监控', 'monitor_view', '监控管理'),
+('配置监控', 'monitor_config', '监控管理'),
+('处理告警', 'alert_handle', '监控管理'),
+-- 用户管理权限
+('查看用户', 'user_view', '用户管理'),
+('创建用户', 'user_create', '用户管理'),
+('编辑用户', 'user_edit', '用户管理'),
+('删除用户', 'user_delete', '用户管理'),
+-- 系统权限
+('系统配置', 'system_config', '系统管理'),
+('查看日志', 'log_view', '系统管理'),
+('查看角色', 'role_view', '角色管理'),
+('编辑角色', 'role_edit', '角色管理')
+ON CONFLICT (code) DO NOTHING;
+
+-- ===========================================
+-- 分配管理员角色权限
+-- ===========================================
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 1, id FROM permissions
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- ===========================================
 -- 插入示例客户数据
