@@ -162,10 +162,8 @@ export default function KnowledgeTagsPage() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/knowledge-tags', {
+      const response = await fetch(`/api/knowledge-tags?tagName=${encodeURIComponent(currentTag.name)}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tagName: currentTag.name }),
       });
 
       const result = await response.json();

@@ -187,7 +187,19 @@ export async function POST(request: NextRequest) {
 // DELETE - 删除标签
 export async function DELETE(request: NextRequest) {
   try {
-    const { tagName } = await request.json();
+    // 尝试从 URL 参数获取 tagName
+    const searchParams = request.nextUrl.searchParams;
+    let tagName = searchParams.get('tagName');
+    
+    // 如果 URL 参数没有，尝试从请求体获取
+    if (!tagName) {
+      try {
+        const body = await request.json();
+        tagName = body.tagName;
+      } catch {
+        // 请求体为空，忽略
+      }
+    }
 
     if (!tagName) {
       return NextResponse.json(
