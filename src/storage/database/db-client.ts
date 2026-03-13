@@ -261,9 +261,21 @@ function initializeDefaultData(): void {
   
   // 初始化默认通知
   const defaultNotifications = [
-    { id: 1, title: '工单已分配', message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。', type: 'info', category: 'workorder', is_read: false, related_id: 'WO20240101001', created_at: now },
+    { id: 1, title: '工单已分配', message: '工单 WO20240101001 已分配给您处理，请及时查看并处理。该工单为服务器磁盘空间不足告警，优先级为高。', type: 'info', category: 'workorder', is_read: false, related_id: 'WO20240101001', created_at: now },
     { id: 2, title: '告警通知', message: '服务器 AST001 CPU使用率超过90%，当前使用率为92.5%，请及时处理。', type: 'warning', category: 'alert', is_read: false, related_id: 'AST001', created_at: now },
     { id: 3, title: '工单已完成', message: '工单 WO20240101003 已被标记为已完成，感谢您的处理。', type: 'success', category: 'workorder', is_read: true, related_id: 'WO20240101003', created_at: now },
+    { id: 4, title: '系统升级通知', message: '系统将于今晚22:00进行升级维护，预计维护时长1小时，届时系统将暂停服务。', type: 'info', category: 'system', is_read: true, related_id: null, created_at: now },
+    { id: 5, title: '知识库更新', message: '有3篇新文章被添加到知识库：《服务器安全加固指南》、《常见网络问题解决方案》、《系统监控配置手册》。', type: 'success', category: 'knowledge', is_read: true, related_id: null, created_at: now },
+    { id: 6, title: '资产到期提醒', message: '资产 AST001（应用服务器-01）的维保合同将于7天后到期，请及时续保。', type: 'warning', category: 'asset', is_read: false, related_id: 'AST001', created_at: now },
+    { id: 7, title: '巡检任务完成', message: '本周例行巡检任务已完成，共检查设备45台，发现异常3项，已生成巡检报告。', type: 'success', category: 'routine', is_read: true, related_id: null, created_at: now },
+    { id: 8, title: '新工单待审批', message: '您有2个变更申请等待审批，请及时处理。', type: 'info', category: 'workorder', is_read: true, related_id: null, created_at: now },
+    { id: 9, title: '告警已恢复', message: '服务器 AST002 内存使用率已恢复正常，当前使用率为75%。', type: 'success', category: 'alert', is_read: false, related_id: 'AST002', created_at: now },
+    { id: 10, title: '资产入库通知', message: '新资产「数据库服务器-03」已入库，资产编号：AST-2024-0056，请及时进行资产登记。', type: 'info', category: 'asset', is_read: false, related_id: 'AST-2024-0056', created_at: now },
+    { id: 11, title: '工单超时提醒', message: '工单 WO20240101005 已超过处理时限，请尽快处理或申请延期。', type: 'warning', category: 'workorder', is_read: false, related_id: 'WO20240101005', created_at: now },
+    { id: 12, title: '密码即将过期', message: '您的账户密码将于3天后过期，请及时修改密码。', type: 'warning', category: 'system', is_read: true, related_id: null, created_at: now },
+    { id: 13, title: '月度报告已生成', message: '2024年1月运维月度报告已生成，请前往「例行工作」模块查看。', type: 'info', category: 'routine', is_read: true, related_id: null, created_at: now },
+    { id: 14, title: '知识库审批通过', message: '您提交的文章《Nginx性能优化实践》已审核通过并发布。', type: 'success', category: 'knowledge', is_read: true, related_id: null, created_at: now },
+    { id: 15, title: '服务目录更新', message: '服务目录「基础运维服务」已更新，新增了2个服务项目，请查看。', type: 'info', category: 'system', is_read: false, related_id: null, created_at: now },
   ];
   
   const notificationsStore = getTableStore('notifications');
@@ -393,17 +405,6 @@ class QueryBuilder<T = Record<string, unknown>> {
     this.whereClauses.push(`${column} != $${this.whereParams.length + 1}`);
     this.whereParams.push(value);
     this.memoryFilters.push(row => row[column] !== value);
-    return this;
-  }
-
-  is(column: string, value: unknown): QueryBuilder<T> {
-    if (value === null) {
-      this.whereClauses.push(`${column} IS NULL`);
-      this.memoryFilters.push(row => row[column] === null || row[column] === undefined);
-    } else {
-      this.whereClauses.push(`${column} IS NOT NULL`);
-      this.memoryFilters.push(row => row[column] !== null && row[column] !== undefined);
-    }
     return this;
   }
 
