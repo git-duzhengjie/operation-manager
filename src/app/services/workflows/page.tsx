@@ -727,30 +727,30 @@ export default function WorkflowsPage() {
 
       {/* 流程详情对话框 */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{editingWorkflow?.name} - 流程步骤</DialogTitle>
           </DialogHeader>
 
           {editingWorkflow && (
             <div className="py-4">
-              <div className="flex items-center gap-4 overflow-x-auto pb-4">
+              <div className="flex items-center justify-start gap-6 overflow-x-auto pb-4 px-2">
                 {editingWorkflow.steps.map((step, index) => (
                   <div key={step.id} className="flex items-center">
-                    <div className="flex flex-col items-center min-w-[100px]">
-                      <div className={`w-10 h-10 rounded-full ${stepTypeConfig[step.type].color} text-white flex items-center justify-center mb-2`}>
+                    <div className="flex flex-col items-center min-w-[120px] p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+                      <div className={`w-12 h-12 rounded-full ${stepTypeConfig[step.type].color} text-white flex items-center justify-center mb-2 shadow-sm`}>
                         {stepTypeConfig[step.type].icon}
                       </div>
                       <span className="text-sm font-medium text-center">{step.name}</span>
-                      <span className="text-xs text-gray-500">{stepTypeConfig[step.type].label}</span>
+                      <span className="text-xs text-gray-500 mt-0.5">{stepTypeConfig[step.type].label}</span>
                       {step.assignee && (
-                        <span className="text-xs text-blue-600 mt-1">
+                        <span className="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-0.5 rounded">
                           {step.assignee.value}
                         </span>
                       )}
                     </div>
                     {index < editingWorkflow.steps.length - 1 && (
-                      <ChevronRight className="w-6 h-6 text-gray-300 mx-2" />
+                      <ChevronRight className="w-6 h-6 text-gray-400 mx-3 flex-shrink-0" />
                     )}
                   </div>
                 ))}
