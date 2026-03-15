@@ -410,6 +410,103 @@ async function getDebugInfo() {
     ZABBIX_PASSWORD: process.env.ZABBIX_PASSWORD ? '已设置' : '未设置',
   };
   
+  // 网络连接测试
+  let connectionTest = null;
+  let apiTest = null;
+  
+  if (config.enabled) {
+    const apiEndpoint = `${config.apiUrl}/api_jsonrpc.php`;
+    
+    // 测试 1: 检查 API 端点是否可访问
+    try {
+      const testResponse = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json-rpc' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'apiinfo.version',
+          params: {},
+          id: 1,
+        }),
+      });
+      
+      const contentType = testResponse.headers.get('content-type') || '';
+      const responseText = await testResponse.text();
+      
+      if (contentType.includes('application/json')) {
+        try {
+          const jsonData = JSON.parse(responseText);
+          apiTest = {
+            success: true,
+            status: testResponse.status,
+            contentType,
+            apiVersion: jsonData.result || null,
+            hint: 'API 端点可访问，返回 JSON 格式',
+          };
+        } catch {
+          apiTest = {
+            success: false,
+            status: testResponse.status,
+            contentType,
+            responsePreview: responseText.substring(0, 200),
+            hint: 'API 返回 JSON 解析失败',
+          };
+        }
+      } else {
+        // 返回非 JSON（通常是 HTML）
+        apiTest = {
+          success: false,
+          status: testResponse.status,
+          contentType,
+          responsePreview: responseText.substring(0, 200),
+          hint: '❌ API 返回非 JSON 格式，可能是 URL 配置错误',
+          possibleCauses: [
+            'URL 路径错误：确保 URL 指向 Zabbix 根目录（如 http://192.168.1.100/zabbix）',
+            'Zabbix 未在该路径下部署',
+            'Zabbix 服务未启动或不可访问',
+            '需要检查 Zabbix 前端是否正常工作',
+          ],
+        };
+      }
+    } catch (error) {
+      apiTest = {
+        success: false,
+        error: error instanceof Error ? error.message : '网络请求失败',
+        hint: '❌ 无法连接到 Zabbix API 端点',
+        possibleCauses: [
+          '网络不通：检查 Zabbix 服务器是否可达',
+          '防火墙阻止了连接',
+          'URL 格式错误',
+          'DNS 解析失败',
+        ],
+      };
+    }
+    
+    // 测试 2: 检查 Zabbix 前端是否可访问
+    try {
+      const frontendResponse = await fetch(config.url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      const frontendContentType = frontendResponse.headers.get('content-type') || '';
+      
+      connectionTest = {
+        success: frontendResponse.ok,
+        status: frontendResponse.status,
+        contentType: frontendContentType,
+        hint: frontendResponse.ok 
+          ? '✅ Zabbix 前端可访问' 
+          : `前端返回状态码 ${frontendResponse.status}`,
+      };
+    } catch (error) {
+      connectionTest = {
+        success: false,
+        error: error instanceof Error ? error.message : '连接失败',
+        hint: '❌ 无法连接到 Zabbix 前端',
+      };
+    }
+  }
+  
   return NextResponse.json({
     success: true,
     data: {
@@ -425,6 +522,9 @@ async function getDebugInfo() {
       // 显示 URL 预览（脱敏）
       urlPreview: config.url ? `${config.url.substring(0, 50)}${config.url.length > 50 ? '...' : ''}` : null,
       apiEndpoint: config.apiUrl ? `${config.apiUrl}/api_jsonrpc.php` : null,
+      // 连接测试结果
+      connectionTest,
+      apiTest,
       // 配置指南
       setupGuide: {
         requiredVars: [
