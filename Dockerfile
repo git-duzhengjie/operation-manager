@@ -12,6 +12,10 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # Configure npm registry to use China mirror (faster in China)
 RUN npm config set registry https://registry.npmmirror.com
 
+# Build arguments for NEXT_PUBLIC_* variables (will be inlined at build time)
+ARG NEXT_PUBLIC_ZABBIX_URL
+ARG NEXT_PUBLIC_APP_NAME=数字政府运维管理平台
+
 WORKDIR /app
 
 # Copy package files first for better caching
@@ -26,6 +30,10 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+
+# Set NEXT_PUBLIC_* variables for build (will be inlined into client code)
+ENV NEXT_PUBLIC_ZABBIX_URL=$NEXT_PUBLIC_ZABBIX_URL
+ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 
 # Build the application
 RUN pnpm run build
