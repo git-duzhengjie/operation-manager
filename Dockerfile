@@ -9,6 +9,9 @@ RUN apk add --no-cache git
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
+# Configure npm registry to use China mirror (faster in China)
+RUN npm config set registry https://registry.npmmirror.com
+
 WORKDIR /app
 
 # Copy package files first for better caching
