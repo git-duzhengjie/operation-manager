@@ -16,14 +16,20 @@ services:
     restart: unless-stopped
     ports:
       - "5000:5000"
+    # 允许容器访问宿主机服务
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # 数据库配置
       - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/ops_platform}
       # AI 配置
       - COZE_API_KEY=${COZE_API_KEY:-}
       - COZE_BOT_ID=${COZE_BOT_ID:-}
-      # Zabbix 配置（可选）
+      # Zabbix 配置
+      # NEXT_PUBLIC_ZABBIX_URL: 前端访问地址（浏览器直接访问，使用真实 IP）
+      # ZABBIX_API_URL: 后端 API 访问地址（容器内访问，使用 host.docker.internal）
       - NEXT_PUBLIC_ZABBIX_URL=${NEXT_PUBLIC_ZABBIX_URL:-}
+      - ZABBIX_API_URL=${ZABBIX_API_URL:-http://host.docker.internal/zabbix}
       - ZABBIX_USER=${ZABBIX_USER:-}
       - ZABBIX_PASSWORD=${ZABBIX_PASSWORD:-}
       # Node 环境
