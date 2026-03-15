@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZabbixClient, ZABBIX_PRIORITY_MAP } from '@/lib/zabbix';
-import { getZabbixConfig } from '@/config/zabbix';
+import { getZabbixConfig, getZabbixApiEndpoint } from '@/config/zabbix';
 
 // 创建 Zabbix 客户端
 const getZabbixClient = () => new ZabbixClient();
@@ -406,6 +406,7 @@ async function getDebugInfo() {
     NEXT_PUBLIC_ZABBIX_URL: process.env.NEXT_PUBLIC_ZABBIX_URL ? '已设置' : '未设置',
     ZABBIX_URL: process.env.ZABBIX_URL ? '已设置' : '未设置',
     ZABBIX_API_URL: process.env.ZABBIX_API_URL ? '已设置' : '未设置',
+    ZABBIX_API_ENDPOINT: process.env.ZABBIX_API_ENDPOINT ? '已设置' : '未设置',
     ZABBIX_USER: process.env.ZABBIX_USER ? '已设置' : '未设置',
     ZABBIX_PASSWORD: process.env.ZABBIX_PASSWORD ? '已设置' : '未设置',
   };
@@ -413,11 +414,12 @@ async function getDebugInfo() {
   // 网络连接测试
   let connectionTest = null;
   let apiTest = null;
+  let endpointDiscovery = null;
   
   if (config.enabled) {
-    const apiEndpoint = `${config.apiUrl}/api_jsonrpc.php`;
+    const apiEndpoint = getZabbixApiEndpoint(config);
     
-    // 测试 1: 检查 API 端点是否可访问
+    // 测试 1: 检查配置的 API 端点是否可访问
     try {
       const testResponse = await fetch(apiEndpoint, {
         method: 'POST',
@@ -428,6 +430,7 @@ async function getDebugInfo() {
           params: {},
           id: 1,
         }),
+        signal: AbortSignal.timeout(10000),
       });
       
       const contentType = testResponse.headers.get('content-type') || '';
@@ -441,7 +444,8 @@ async function getDebugInfo() {
             status: testResponse.status,
             contentType,
             apiVersion: jsonData.result || null,
-            hint: 'API 端点可访问，返回 JSON 格式',
+            endpoint: apiEndpoint,
+            hint: '✅ API 端点可访问，返回 JSON 格式',
           };
         } catch {
           apiTest = {
@@ -459,19 +463,23 @@ async function getDebugInfo() {
           status: testResponse.status,
           contentType,
           responsePreview: responseText.substring(0, 200),
+          endpoint: apiEndpoint,
           hint: '❌ API 返回非 JSON 格式，可能是 URL 配置错误',
           possibleCauses: [
-            'URL 路径错误：确保 URL 指向 Zabbix 根目录（如 http://192.168.1.100/zabbix）',
-            'Zabbix 未在该路径下部署',
-            'Zabbix 服务未启动或不可访问',
-            '需要检查 Zabbix 前端是否正常工作',
+            'URL 路径错误：请检查 Zabbix 实际部署位置',
+            'Zabbix 可能部署在根路径而非 /zabbix 子目录',
+            'Zabbix 可能部署在不同的子目录',
           ],
         };
+        
+        // 自动探测正确的 API 端点
+        endpointDiscovery = await discoverZabbixEndpoint(config.apiUrl);
       }
     } catch (error) {
       apiTest = {
         success: false,
         error: error instanceof Error ? error.message : '网络请求失败',
+        endpoint: apiEndpoint,
         hint: '❌ 无法连接到 Zabbix API 端点',
         possibleCauses: [
           '网络不通：检查 Zabbix 服务器是否可达',
@@ -480,6 +488,9 @@ async function getDebugInfo() {
           'DNS 解析失败',
         ],
       };
+      
+      // 尝试探测
+      endpointDiscovery = await discoverZabbixEndpoint(config.apiUrl);
     }
     
     // 测试 2: 检查 Zabbix 前端是否可访问
@@ -514,17 +525,17 @@ async function getDebugInfo() {
       errors: config.errors,
       envVars,
       configStatus: {
-        url: config.url ? '已设置' : '未设置',
-        apiUrl: config.apiUrl ? '已设置' : '未设置',
+        url: config.url || null,
+        apiUrl: config.apiUrl || null,
+        apiEndpoint: config.apiEndpoint || null,
         user: config.user ? '已设置' : '未设置',
         password: config.password ? '已设置' : '未设置',
       },
-      // 显示 URL 预览（脱敏）
-      urlPreview: config.url ? `${config.url.substring(0, 50)}${config.url.length > 50 ? '...' : ''}` : null,
-      apiEndpoint: config.apiUrl ? `${config.apiUrl}/api_jsonrpc.php` : null,
       // 连接测试结果
       connectionTest,
       apiTest,
+      // 端点探测结果
+      endpointDiscovery,
       // 配置指南
       setupGuide: {
         requiredVars: [
@@ -533,8 +544,8 @@ async function getDebugInfo() {
           { name: 'ZABBIX_PASSWORD', example: 'zabbix', note: 'Zabbix 登录密码' },
         ],
         optionalVars: [
-          { name: 'ZABBIX_API_URL', example: 'http://zabbix-internal/zabbix', note: '如果后端访问地址与前端不同，可单独设置' },
-          { name: 'ZABBIX_URL', example: 'http://192.168.1.100/zabbix', note: 'NEXT_PUBLIC_ZABBIX_URL 的备用变量名' },
+          { name: 'ZABBIX_API_URL', example: 'http://host.docker.internal/zabbix', note: '后端访问地址（Docker 内部网络）' },
+          { name: 'ZABBIX_API_ENDPOINT', example: 'http://192.168.1.100/zabbix/api_jsonrpc.php', note: '完整 API 端点（直接指定）' },
         ],
       },
       hint: config.enabled 
@@ -542,4 +553,75 @@ async function getDebugInfo() {
         : '请确保所有必需的环境变量都已正确设置',
     },
   });
+}
+
+// 探测 Zabbix API 端点
+async function discoverZabbixEndpoint(baseUrl: string): Promise<{
+  tested: string[];
+  found: string | null;
+  suggestion: string | null;
+}> {
+  // 提取基础 URL（去掉可能的子路径）
+  const urlObj = new URL(baseUrl);
+  const host = urlObj.origin;
+  
+  // 可能的 API 端点路径
+  const possiblePaths = [
+    `${baseUrl}/api_jsonrpc.php`,           // 配置的路径 + /api_jsonrpc.php
+    `${host}/api_jsonrpc.php`,              // 根路径 + /api_jsonrpc.php
+    `${host}/zabbix/api_jsonrpc.php`,       // /zabbix 子目录
+    `${host}/zabbix/api_jsonrpc.php`,       // 不同端口
+  ];
+  
+  // 去重
+  const uniquePaths = [...new Set(possiblePaths)];
+  const tested: string[] = [];
+  let found: string | null = null;
+  
+  for (const endpoint of uniquePaths) {
+    tested.push(endpoint);
+    
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json-rpc' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'apiinfo.version',
+          params: {},
+          id: 1,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        const text = await response.text();
+        try {
+          const data = JSON.parse(text);
+          if (data.result) {
+            found = endpoint;
+            break;
+          }
+        } catch {
+          // 不是有效的 JSON
+        }
+      }
+    } catch {
+      // 忽略错误，继续测试下一个
+    }
+  }
+  
+  let suggestion: string | null = null;
+  if (found) {
+    // 从找到的端点推断正确的配置
+    if (found.includes('/zabbix/api_jsonrpc.php')) {
+      suggestion = `请在 .env 中设置:\nZABBIX_API_URL=${host}/zabbix`;
+    } else if (found === `${host}/api_jsonrpc.php`) {
+      suggestion = `Zabbix 部署在根路径，请在 .env 中设置:\nZABBIX_API_URL=${host}`;
+    }
+  }
+  
+  return { tested, found, suggestion };
 }

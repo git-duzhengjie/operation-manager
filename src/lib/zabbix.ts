@@ -187,7 +187,34 @@ export class ZabbixClient {
         body: JSON.stringify(body),
       });
 
-      const data: ZabbixResponse<T> = await response.json();
+      // 先检查 Content-Type，避免 HTML 响应导致 JSON 解析错误
+      const contentType = response.headers.get('content-type') || '';
+      const responseText = await response.text();
+
+      if (!contentType.includes('application/json')) {
+        // 返回非 JSON 内容（通常是 HTML 错误页面）
+        const preview = responseText.substring(0, 500);
+        throw new Error(
+          `Zabbix API 返回非 JSON 格式\n` +
+          `端点: ${endpoint}\n` +
+          `状态码: ${response.status}\n` +
+          `Content-Type: ${contentType}\n` +
+          `响应预览: ${preview}\n` +
+          `可能原因:\n` +
+          `1. URL 配置错误，请确认 Zabbix 地址是否正确\n` +
+          `2. Zabbix API 端点应为: http://your-zabbix/zabbix/api_jsonrpc.php\n` +
+          `3. Zabbix 服务未正常启动\n` +
+          `4. 需要检查 Zabbix 前端是否能正常访问`
+        );
+      }
+
+      // 解析 JSON
+      let data: ZabbixResponse<T>;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        throw new Error(`Zabbix API JSON 解析失败: ${responseText.substring(0, 200)}`);
+      }
 
       if (data.error) {
         throw new Error(`Zabbix API Error: ${data.error.message} - ${data.error.data}`);

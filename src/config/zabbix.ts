@@ -9,17 +9,20 @@
  * 环境变量配置：
  * - NEXT_PUBLIC_ZABBIX_URL: 前端可访问的 Zabbix 地址（例如: http://192.168.1.100/zabbix）
  * - ZABBIX_API_URL: 后端 API 访问的 Zabbix 地址（可选，默认与前端相同）
+ * - ZABBIX_API_ENDPOINT: 完整的 API 端点（可选，如 http://192.168.1.100/zabbix/api_jsonrpc.php）
  * - ZABBIX_USER: Zabbix 用户名
  * - ZABBIX_PASSWORD: Zabbix 密码
  * 
  * 注意：
  * - URL 不要包含 /api_jsonrpc.php，代码会自动拼接
  * - 如果 Zabbix 部署在子目录，URL 应为 http://host/subdir（如 http://192.168.1.100/zabbix）
+ * - 如果 Zabbix 部署在根路径，URL 应为 http://host（如 http://192.168.1.100）
  */
 
 export interface ZabbixConfig {
   url: string;
   apiUrl: string;
+  apiEndpoint?: string; // 完整的 API 端点（可选）
   user: string;
   password: string;
   enabled: boolean;
@@ -30,6 +33,7 @@ export interface ZabbixConfig {
 export function getZabbixConfig(): ZabbixConfig {
   const url = process.env.NEXT_PUBLIC_ZABBIX_URL || process.env.ZABBIX_URL || '';
   const apiUrl = process.env.ZABBIX_API_URL || url;
+  const apiEndpoint = process.env.ZABBIX_API_ENDPOINT || '';
   const user = process.env.ZABBIX_USER || '';
   const password = process.env.ZABBIX_PASSWORD || '';
   
@@ -60,6 +64,7 @@ export function getZabbixConfig(): ZabbixConfig {
   return {
     url,
     apiUrl,
+    apiEndpoint: apiEndpoint || undefined,
     user,
     password,
     enabled: !!(url && user && password) && errors.length === 0,
@@ -69,6 +74,11 @@ export function getZabbixConfig(): ZabbixConfig {
 
 // Zabbix API 端点
 export function getZabbixApiEndpoint(config: ZabbixConfig): string {
+  // 如果直接指定了 API 端点，直接使用
+  if (config.apiEndpoint) {
+    return config.apiEndpoint;
+  }
+  // 否则自动拼接
   return `${config.apiUrl}/api_jsonrpc.php`;
 }
 
